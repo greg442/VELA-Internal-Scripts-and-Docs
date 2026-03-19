@@ -171,11 +171,96 @@ def format_text(report):
     lines.append("\n=======================================")
     return "\n".join(lines)
 
+def auto_score_momentum(conn):
+    """
+    Nightly momentum auto-scorer.
+    Updates deal and relationship momentum based on:
+    - Days since last signal (staleness)
+    - Recent signal types (opportunity=rising, risk=blocked)
+    - Stage movement (changed recently=rising, stuck=stalling)
+    """
+    now = datetime.now(timezone.utc)
+    updated = 0
+
+    # Get all active deals and people
+    entities = conn.execute("""
+        SELECT e.id, e.type, e.name, e.stage, e.last_updated,
+               CAST((julianday('now') - julianday(e.last_updated)) AS INTEGER) AS days_stale,
+               (SELECT signal_type FROM signals s
+                WHERE s.entity_id = e.id
+                ORDER BY s.ts DESC LIMIT 1) AS last_signal_type,
+               (SELECT COUNT(*) FROM signals s
+                WHERE s.entity_id = e.id
+                AND s.ts >= datetime('now', '-7 days')) AS signals_7d,
+               (SELECT COUNT(*) FROM signals s
+                WHERE s.entity_id = e.id
+                AND s.signal_type = 'risk'
+                AND s.ts >= datetime('now', '-7 days')) AS risk_signals_7d
+        FROM entities e
+        WHERE e.type IN ('deal', 'person')
+        AND e.status NOT IN ('closed', 'dormant')
+    """).fetchall()
+
+    for e in entities:
+        eid = e['id']
+        days = e['days_stale'] or 0
+        last_sig = e['last_signal_type']
+        sigs_7d = e['signals_7d'] or 0
+        risk_7d = e['risk_signals_7d'] or 0
+
+        # Score momentum
+        if risk_7d > 0:
+            momentum = 'blocked'
+        elif days >= 14:
+            momentum = 'blocked'
+        elif days >= 7:
+            momentum = 'stalling'
+        elif last_sig == 'opportunity' and sigs_7d > 0:
+            momentum = 'rising'
+        elif sigs_7d > 0:
+            momentum = 'steady'
+        else:
+            momentum = 'steady'
+
+        # Update entities table
+        conn.execute("""
+            UPDATE entities SET momentum = ?
+            WHERE id = ?
+        """, (momentum, eid))
+        updated += 1
+
+    conn.commit()
+    return updated
+
+
+def auto_score_priorities(conn):
+    """Update priority momentum based on linked entity momentum."""
+    rows = conn.execute("""
+        SELECT p.rank, p.entity_id, e.momentum as entity_momentum
+        FROM priorities p
+        JOIN entities e ON p.entity_id = e.id
+        WHERE p.entity_id IS NOT NULL
+    """).fetchall()
+
+    updated = 0
+    for row in rows:
+        if row['entity_momentum']:
+            conn.execute("""
+                UPDATE priorities SET momentum = ?
+                WHERE rank = ?
+            """, (row['entity_momentum'], row['rank']))
+            updated += 1
+
+    conn.commit()
+    return updated
+
+
 def main():
     args = sys.argv[1:]
     days = 7
     output_format = "text"
     entity_id = None
+    auto_score = "--auto-score" in args
     i = 0
     while i < len(args):
         if args[i] == "--days":
@@ -185,6 +270,14 @@ def main():
         elif args[i] == "--entity":
             i += 1; entity_id = args[i] if i < len(args) else None
         i += 1
+
+    if auto_score:
+        conn = get_conn()
+        deals_updated = auto_score_momentum(conn)
+        priorities_updated = auto_score_priorities(conn)
+        conn.close()
+        print(f"Auto-scored momentum: {deals_updated} entities, {priorities_updated} priorities updated")
+        return
 
     since = window_start(days)
     conn = get_conn()
