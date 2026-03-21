@@ -35,6 +35,7 @@ Purpose: every open commitment Greg has made — check deadlines against today's
 Rules:
 - Anything due within 72 hours: surface immediately in first response
 - Anything overdue: flag immediately regardless of what Greg asked
+- Check decisions with revisit dates within 7 days: sqlite3 ~/.openclaw/hannah.db "SELECT id, title, revisit_date FROM decisions WHERE status='active' AND revisit_date <= date('now','+7 days') ORDER BY revisit_date;"
 - Status Open + deadline passed = Overdue — update the entry and flag it
 
 ## 8. Confirm Ready
