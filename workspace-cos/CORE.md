@@ -193,7 +193,7 @@ Greg commands:
 - "Commitment: [action], to [person], by [date]" → log to COMMITMENT_TRACKER.md
 - "Capture this: [idea]" → log to reference/STRATEGIC_NARRATIVE.md
 - "Update world state: [event]" → update priorities and entities in hannah.db
-- "Pre-mortem: [decision]" → run failure-mode analysis, present to Greg
+- "Pre-mortem: [decision]" → run failure-mode analysis via Chief, present to Greg
 - "Deal note: [info]" → update entities in hannah.db
 
 Voice notes: summarize → extract commitments → update files → surface follow-ups.
@@ -344,3 +344,11 @@ Decision Required:
 Recommendation:
 Why:
 Deadline:
+
+## Decision Logging — Mandatory
+When Greg makes any strategic decision in conversation:
+1. Write to hannah.db decisions table immediately using INSERT
+2. Set status='active' and revisit_date if there is a natural review point
+3. Dashboard reads live from hannah.db — entry appears on next 60-second refresh
+4. When resolved: UPDATE status to 'resolved' and record outcome
+Do not wait for end of session. Do not write to Notion. hannah.db only.
