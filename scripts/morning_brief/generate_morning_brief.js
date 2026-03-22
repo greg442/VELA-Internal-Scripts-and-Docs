@@ -46,7 +46,7 @@ const RETICLE   = path.join(__dirname, 'template_assets/d731c64d522f982565ffbbca
 // Greg-specific delivery config
 const DRIVE_FOLDER_ID = '16lnvbDk_RWtfUR7vfF9ZgoOqiU9cb0No';
 const EMAIL_TO        = 'greg@gregshindler.com';
-const EMAIL_FROM      = 'greg@gregshindler.com';
+const EMAIL_FROM      = 'cos.gregshindler@gmail.com';
 const GOG_ACCOUNT     = 'greg@gregshindler.com';
 
 const NOW         = new Date();
@@ -176,7 +176,7 @@ function sendEmail(pdfPath, driveLink) {
     '--subject',   subject,
     '--body-file', bodyFile,
     '--attach',    pdfPath,
-    '-a',          GOG_ACCOUNT,
+    '-a',          EMAIL_FROM,
     '-y'
   ], { encoding: 'utf8' });
 
