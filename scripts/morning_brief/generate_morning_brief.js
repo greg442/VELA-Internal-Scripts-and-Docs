@@ -46,7 +46,7 @@ const RETICLE   = path.join(__dirname, 'template_assets/d731c64d522f982565ffbbca
 // Greg-specific delivery config
 const DRIVE_FOLDER_ID = '16lnvbDk_RWtfUR7vfF9ZgoOqiU9cb0No';
 const EMAIL_TO        = 'greg@gregshindler.com';
-const EMAIL_FROM      = 'cos.gregshindler@gmail.com';
+const EMAIL_FROM      = 'greg@gregshindler.com';
 const GOG_ACCOUNT     = 'greg@gregshindler.com';
 
 const NOW         = new Date();
@@ -543,35 +543,49 @@ async function main() {
   sendEmail(deliverPath, driveLink);
 
   const p1 = priorities[0];
-  const p2 = priorities[1];
-  const p3 = priorities[2];
 
-  // Build one-liner per section — omit if no content
+  // Compute commitment counts directly from raw tracker (due/overdue/atRisk are scoped in buildContent)
+  const in48hTg = new Date(NOW.getTime() + 2 * 86400000);
+  const tgDue = [], tgOverdue = [];
+  (commitmentTracker || '').split(/^###/m).filter(b => b.trim()).forEach(block => {
+    const byMatch     = block.match(/^By:\s*(.+)$/m);
+    const statusMatch = block.match(/^Status:\s*(.+)$/m);
+    if (!byMatch) return;
+    const byRaw  = byMatch[1].trim();
+    const status = statusMatch ? statusMatch[1].trim().toLowerCase() : '';
+    if (status.includes('complete')) return;
+    const isoM = byRaw.match(/(\d{4}-\d{2}-\d{2})/);
+    const txtM = byRaw.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})/i);
+    let d = null;
+    if (isoM) d = new Date(isoM[1]);
+    else if (txtM) d = new Date(`${txtM[1]} ${txtM[2]} ${NOW.getFullYear()}`);
+    if (!d || byRaw.toLowerCase().includes('tbd') || byRaw.toLowerCase().includes('gated')) return;
+    if (d < NOW) tgOverdue.push(byRaw);
+    else if (d <= in48hTg) tgDue.push(byRaw);
+  });
+
+  // Build Telegram — one-liner per section, omit if no content
   const tgLines = [];
   tgLines.push(`*VELA Morning Brief - ${TODAY_LABEL}*`);
   tgLines.push('');
 
   // Today's Call
   if (p1) {
-    const [,, obj, nxt, dl, urg] = p1;
+    const [,, obj, nxt, dl] = p1;
     tgLines.push(`*Call:* Advance ${obj}${dl ? ' by ' + dl : ''}. Next: ${nxt}.`);
   }
 
   // Command Layer — top 3 compressed
-  if (p1) {
+  if (priorities.length > 0) {
     const items = priorities.slice(0, 3).map(([rank,,obj,,,urg]) => `${rank}. ${obj} [${urg}]`).join(' / ');
     tgLines.push(`*Priorities:* ${items}`);
   }
 
   // Commitments
-  const totalDue = due.length + overdue.length + atRisk.length;
-  if (totalDue > 0) {
-    const parts = [];
-    if (due.length)     parts.push(`${due.length} due in 48h`);
-    if (overdue.length) parts.push(`${overdue.length} overdue`);
-    if (atRisk.length)  parts.push(`${atRisk.length} at risk`);
-    tgLines.push(`*Commitments:* ${parts.join(', ')}`);
-  }
+  const tgCommitParts = [];
+  if (tgDue.length)     tgCommitParts.push(`${tgDue.length} due in 48h`);
+  if (tgOverdue.length) tgCommitParts.push(`${tgOverdue.length} overdue`);
+  if (tgCommitParts.length > 0) tgLines.push(`*Commitments:* ${tgCommitParts.join(', ')}`);
 
   // Calendar
   if (calendarEvents.length > 0) {
@@ -588,7 +602,7 @@ async function main() {
   if (decisions.length > 0) {
     const urgentDecs = decisions.filter(d => d[3] && (new Date(d[3]) - NOW) / 86400000 <= 3);
     if (urgentDecs.length > 0) {
-      tgLines.push(`*Decisions:* ${urgentDecs[0][0]} revisit ${urgentDecs[0][3]}`);
+      tgLines.push(`*Decisions:* ${urgentDecs[0][0]} — revisit ${urgentDecs[0][3]}`);
     } else {
       tgLines.push(`*Decisions:* ${decisions.length} open`);
     }
