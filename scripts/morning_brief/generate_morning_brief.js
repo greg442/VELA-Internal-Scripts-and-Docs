@@ -505,7 +505,7 @@ async function main() {
   const priorities     = sql(`SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum FROM priorities ORDER BY rank ASC LIMIT 6`);
   const decisions      = sql(`SELECT title, decision, context, revisit_date, status FROM decisions WHERE status='active' ORDER BY revisit_date ASC`);
   const signalsToday   = sql(`SELECT ts, source, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-24 hours') AND ium_score >= 7 ORDER BY ium_score DESC`);
-  const signalsWeek    = sql(`SELECT ts, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-7 days') AND (action_taken IS NULL OR action_taken = '') ORDER BY ts DESC LIMIT 100`);
+  const signalsWeek    = sql(`SELECT ts, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-7 days') AND (action_taken IS NULL OR action_taken = '' OR (action_taken NOT LIKE '%resolved%' AND action_taken NOT LIKE '%complete%' AND action_taken NOT LIKE '%no action%' AND action_taken NOT LIKE '%closed%')) ORDER BY ts DESC LIMIT 100`);
   const relationships  = sql(`SELECT name, last_contact, strategic_val, status, next_action FROM entities WHERE type='relationship' ORDER BY last_contact ASC`);
   const deals          = sql(`SELECT name, status, momentum, stage, next_action, last_updated, strategic_val FROM entities WHERE type IN ('deal','priority') ORDER BY momentum DESC`);
   const commitmentTracker = readWorkspaceFile('COMMITMENT_TRACKER.md');
