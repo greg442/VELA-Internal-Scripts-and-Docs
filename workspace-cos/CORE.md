@@ -60,29 +60,165 @@ After triage, send Greg a Telegram summary:
 4. Nothing urgent? One line and stop.
 
 ### Morning Brief — 6:00 AM ET weekdays
-Produce full report using VELA Report Master Template.
+
+#### PRE-FLIGHT: Database First (mandatory — run before any other tool call)
+
+Query hannah.db in this order. Do not touch email or calendar until all four queries complete.
+If hannah.db is unreachable, abort the brief and send Telegram: "Morning brief aborted — hannah.db unreachable. [error detail]."
+
+```sql
+-- 1. Top priorities
+SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum
+FROM priorities ORDER BY rank ASC LIMIT 6;
+
+-- 2. Commitments due within 48 hours
+SELECT key, value, source FROM memory
+WHERE category = 'commitment' AND date(value) <= date('now', '+2 days');
+
+-- 3. Open decisions approaching revisit (next 5 days)
+SELECT title, decision, revisit_date, status FROM decisions
+WHERE status = 'active' AND date(revisit_date) <= date('now', '+5 days')
+ORDER BY revisit_date ASC;
+
+-- 4. Signals last 24 hours, IUM 7+
+SELECT ts, source, entity_id, signal_type, ium_score, summary FROM signals
+WHERE ts >= datetime('now', '-24 hours') AND ium_score >= 7
+ORDER BY ium_score DESC;
+```
+
+Also load COMMITMENT_TRACKER.md and extract all entries with hard dates in the next 48 hours.
+
+Tool call order is enforced:
+1. hannah.db queries
+2. COMMITMENT_TRACKER.md
+3. Calendar (apply CALENDAR FILTER RULE before reading anything)
+4. Gmail inbox (apply priority contact filter before reading anything)
+5. Assemble and render brief
+
+Email is input four. Not input one.
+
+---
+
+#### CALENDAR FILTER RULE
+
+Before reading any calendar event into the brief, apply this filter.
+Events matching any rule below are excluded completely. Do not mention them. Do not count them.
+
+Exclude by name (case-insensitive substring match):
+- No IGF
+- Trizepitide
+- Tirzepatide
+- Semaglutide
+- Injection
+- Fast
+- Supplement
+- Workout
+- Rest day
+- Weigh-in
+
+Exclude by structure:
+- Any event with a daily or weekly recurrence rule and no attendees other than Greg
+- Any all-day event with no attendees
+- Any event where Greg is the only attendee
+
+After filtering, what remains is the calendar.
+To add a new exclusion, add it to this list. Do not hardcode exclusions anywhere else.
+
+---
+
+#### BRIEF FORMAT
+
+Produce the brief using the VELA Report Master Template.
 Save to Google Drive: My Drive → VELA Greg → Chief of Staff
-Deliver via Telegram: 5-line summary + Google Drive link to full report.
+Deliver via Telegram: 3-line summary + Google Drive link.
 
-Full report structure:
-**CEO Focus**
-Primary Objective / Secondary Objective / Personal Priority
+Do not add sections not listed here. Do not add filler. Every line earns its place.
+No personal optimization. No tomorrow preview. No blank pages.
 
-**Today's Meetings**
-Time | Meeting | Objective | Key Players | Outcome Needed
-1-2 bullet prep notes per meeting.
+---
 
-**Decisions Required Today**
-Decision | Context | My Recommendation
+**COMMAND LAYER**
 
-**Risk Radar** — max 3 specific items
-**Opportunity Signals** — max 3 items
-**Communication Triage** — Sender | Topic | Suggested Response
-**Personal Optimization** — workout window, deep work block, flags
-**Tomorrow Preview** — 3 bullets
+Top 3 priorities. One line each. Source: priorities table, ranks 1-3.
 
-Must include all active blockers:
-Entity | Current State | Why blocked | Required next action | Urgency
+Format:
+[Rank]. [Entity / Objective] — [Next action] | Urgency: [urgency] | Momentum: [momentum] | Deadline: [deadline or none]
+
+Example:
+1. Colel Palmilla — Sign LOI | Urgency: now | Momentum: rising | Deadline: March 25
+
+---
+
+**COMMITMENTS DUE — 48-Hour Window**
+
+Hard dates only. No soft follow-ups.
+Source: COMMITMENT_TRACKER.md and hannah.db memory table (category: commitment).
+
+Format:
+[Date/Time] — [Commitment description] — [Who it's with or what it gates]
+
+If nothing due: "No hard commitments in the next 48 hours."
+
+---
+
+**CALENDAR INTELLIGENCE**
+
+Real meetings only. Recurring personal blocks are invisible (see CALENDAR FILTER RULE).
+One prep note per meeting drawn from hannah.db or LIVE_PRIORITY_MAP.md context. Do not invent prep notes.
+
+Format:
+[Time] — [Meeting name]
+  Attendees: [names if known]
+  Context: [one sentence from hannah.db or known deal context]
+  Prep: [one specific thing Greg should have ready or know going in]
+
+If no real meetings: "Calendar is clear."
+
+---
+
+**INBOX: WHAT ACTUALLY MATTERS**
+
+Render only:
+- Emails from priority contacts (defined in DISPATCH_RULES.md or entities with strategic_val = high)
+- Emails directly tied to active deals or open priorities in hannah.db
+- Emails requiring a same-day decision or response
+
+Everything else is invisible. No "Greg to review" catch-all. If an email does not meet the above criteria, it does not appear.
+
+Format:
+[Sender] — [Subject]
+  Why it matters: [one sentence tied to a priority or deal]
+  Action: [Reply / Review / No action needed]
+
+If nothing qualifies: "Inbox is clear of priority items."
+
+---
+
+**DECISIONS ON THE TABLE**
+
+Source: hannah.db decisions table, status = active, revisit_date within 5 days.
+
+Format:
+[Decision title]
+  Made: [ts] | Revisit: [revisit_date]
+  Status: [one line on where things stand, from context field if available]
+
+If none approaching: "No decisions requiring revisit in the next 5 days."
+
+---
+
+**SIGNALS**
+
+Source: hannah.db signals table, last 24 hours, IUM 7+.
+If nothing qualifies, omit this section entirely.
+
+Format:
+[Entity] — [Signal type] — IUM [score]
+  [Summary, one sentence]
+
+---
+
+Brief ends here.
 
 ### Evening Debrief — 5:00 PM ET weekdays
 Produce full report using VELA Report Master Template.
