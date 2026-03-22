@@ -196,7 +196,7 @@ function sendTelegram(msg) {
   const token  = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_USER_CHAT_ID;
   if (!token || !chatId) { console.warn('Telegram credentials missing from .env'); return; }
-  const body = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+  const body = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'MarkdownV2' });
   const req = https.request({ hostname: 'api.telegram.org', path: `/bot${token}/sendMessage`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': body.length } }, res => res.resume());
   req.on('error', e => console.warn('Telegram error:', e.message));
   req.write(body); req.end();
@@ -466,10 +466,16 @@ function buildContent(data) {
   if (weakSignals.length > 0 || patterns.length > 0) {
     els.push(secHead('8. What Hannah Is Watching'));
     els.push(hr());
-    weakSignals.forEach(([,entityId, signalType, iuScore, summary]) => {
+    weakSignals.forEach(([ts, entityId, signalType, iuScore, summary]) => {
+      // Use summary first word as label if entity_id is null
+      const displayName = (entityId && entityId !== 'null')
+        ? entityId
+        : (summary ? summary.split(' ').slice(0, 3).join(' ') : 'Signal');
+      const scoreLabel = iuScore ? `  Signal strength: ${iuScore}/10` : '';
+      const typeLabel  = (signalType && signalType !== 'null') ? `  ${signalType}` : '';
       els.push(new Paragraph({ spacing: { before: 80, after: 40 }, children: [
-        new TextRun({ text: entityId || 'Unknown', font: 'Lato', bold: true, size: 22, color: C.near_black }),
-        new TextRun({ text: `  ${signalType || ''}  IUM ${iuScore}`, font: 'Lato', size: 18, color: C.muted }),
+        new TextRun({ text: displayName, font: 'Lato', bold: true, size: 22, color: C.near_black }),
+        new TextRun({ text: `${typeLabel}${scoreLabel}`, font: 'Lato', size: 18, color: C.muted }),
       ]}));
       if (summary && summary !== 'null') els.push(bod(summary, { color: C.muted }));
     });
@@ -610,13 +616,40 @@ async function main() {
 
   // Signals
   if (signalsToday.length > 0) {
-    tgLines.push(`*Signal:* ${signalsToday[0][2]} — IUM ${signalsToday[0][4]} — ${signalsToday[0][5]}`);
+    const sigEntity = (signalsToday[0][2] && signalsToday[0][2] !== 'null') ? signalsToday[0][2] : 'Signal';
+    tgLines.push(`*Signal:* ${sigEntity} — strength ${signalsToday[0][4]}/10 — ${signalsToday[0][5]}`);
   }
 
   tgLines.push('');
   tgLines.push(driveLink ? `Full brief: ${driveLink}` : 'Drive upload failed - check email for attachment.');
 
-  const tgMsg = tgLines.join('\n');
+  // Escape special chars for Telegram MarkdownV2
+  function tgEscape(s) {
+    return String(s).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
+  }
+  function tgBold(s) { return `*${tgEscape(s)}*`; }
+
+  // Rebuild with MarkdownV2 bold and proper spacing
+  const tgMsgLines = [];
+  tgMsgLines.push(tgBold(`VELA Morning Brief - ${TODAY_LABEL}`));
+  tgMsgLines.push('');
+
+  tgLines.slice(2).forEach(line => {
+    if (line === '') {
+      tgMsgLines.push('');
+      return;
+    }
+    // Lines starting with *Label:* — convert to MarkdownV2 bold label
+    const labelMatch = line.match(/^\*(.+?):\*\s*(.*)$/);
+    if (labelMatch) {
+      tgMsgLines.push(`${tgBold(labelMatch[1] + ':')} ${tgEscape(labelMatch[2])}`);
+      tgMsgLines.push('');  // blank line after each section for spacing
+    } else {
+      tgMsgLines.push(tgEscape(line));
+    }
+  });
+
+  const tgMsg = tgMsgLines.join('\n');
 
   sendTelegram(tgMsg);
   console.log('\n--- TELEGRAM MESSAGE ---');
