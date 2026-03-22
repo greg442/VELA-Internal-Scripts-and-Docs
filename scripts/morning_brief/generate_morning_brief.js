@@ -168,7 +168,7 @@ function sendEmail(pdfPath, driveLink) {
     spawnSync('bash', [sendScript, EMAIL_FROM, EMAIL_TO, GOG_ACCOUNT, subject, body, pdfPath], { encoding: 'utf8' });
   } else {
     const r = spawnSync('bash', ['-c',
-      `gog-wrapper gmail send --from "${EMAIL_FROM}" --to "${EMAIL_TO}" --cc "${GOG_ACCOUNT}" --subject "${subject}" --body "${body.replace(/\n/g,'\\n')}" --attachment "${pdfPath}" -a ${GOG_ACCOUNT} 2>&1`
+      `gog-wrapper gmail send --from "${EMAIL_FROM}" --to "${EMAIL_TO}" --cc "${GOG_ACCOUNT}" --subject "${subject}" --body-file /dev/stdin --attach "${pdfPath}" -a ${GOG_ACCOUNT} 2>&1`
     ], { encoding: 'utf8' });
     if (r.status !== 0) console.warn('Email warning:', r.stdout);
   }
@@ -291,17 +291,53 @@ function buildContent(data) {
   els.push(hr());
 
   const in48h = new Date(NOW.getTime() + 2 * 86400000);
-  const commitLines = (commitmentTracker || '').split('\n').filter(l => l.trim() && !l.startsWith('#'));
   const due = [], atRisk = [], overdue = [];
   const stalledEntities = deals.filter(d => d[2] === 'stalled').map(d => d[0].toLowerCase());
 
-  commitLines.forEach(line => {
-    const m = line.match(/(\d{4}-\d{2}-\d{2})/);
-    if (!m) return;
-    const d = new Date(m[1]);
-    if (d < NOW) overdue.push(line.trim());
-    else if (d <= in48h) due.push(line.trim());
-    else if (stalledEntities.some(e => line.toLowerCase().includes(e))) atRisk.push(line.trim());
+  // Parse structured COMMITMENT_TRACKER.md format
+  // Each commitment block has: Commitment title (###), To:, By:, Context:, Status:
+  const commitBlocks = (commitmentTracker || '').split(/^###/m).filter(b => b.trim());
+  commitBlocks.forEach(block => {
+    const titleMatch  = block.match(/^\s*(.+?)\n/);
+    const byMatch     = block.match(/^By:\s*(.+)$/m);
+    const statusMatch = block.match(/^Status:\s*(.+)$/m);
+    const toMatch     = block.match(/^To:\s*(.+)$/m);
+
+    if (!titleMatch || !byMatch) return;
+
+    const title  = titleMatch[1].trim();
+    const byRaw  = byMatch[1].trim();
+    const status = statusMatch ? statusMatch[1].trim().toLowerCase() : '';
+    const to     = toMatch ? toMatch[1].trim() : '';
+
+    // Skip completed commitments
+    if (status.includes('complete')) return;
+
+    // Try to parse a date from the By: field
+    const isoMatch  = byRaw.match(/(\d{4}-\d{2}-\d{2})/);
+    const textMatch = byRaw.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+
+    let byDate = null;
+    if (isoMatch) {
+      byDate = new Date(isoMatch[1]);
+    } else if (textMatch) {
+      const year = textMatch[3] || NOW.getFullYear();
+      byDate = new Date(`${textMatch[1]} ${textMatch[2]} ${year}`);
+    }
+
+    const displayLine = `${title} — To: ${to} — By: ${byRaw}`;
+
+    if (byRaw.toLowerCase().includes('tbd') || byRaw.toLowerCase().includes('gated') || !byDate) {
+      // No hard date — check if it involves a stalled entity
+      if (stalledEntities.some(e => title.toLowerCase().includes(e) || to.toLowerCase().includes(e))) {
+        atRisk.push(displayLine);
+      }
+      return;
+    }
+
+    if (byDate < NOW) overdue.push(displayLine);
+    else if (byDate <= in48h) due.push(displayLine);
+    else if (stalledEntities.some(e => title.toLowerCase().includes(e))) atRisk.push(displayLine);
   });
 
   let commitRendered = false;
