@@ -159,20 +159,34 @@ async function uploadToDrive(filePath, fileName) {
 
 function sendEmail(pdfPath, driveLink) {
   if (DRY_RUN) { console.log(`[DRY RUN] Email to ${EMAIL_TO} with attachment ${pdfPath}`); return; }
-  const subject = `VELA Morning Brief — ${TODAY_LABEL}`;
-  const linkLine = driveLink ? `Drive link: ${driveLink}` : 'Drive upload failed — brief attached directly.';
-  const body = `Good morning,\n\nYour morning intelligence brief for ${TODAY_LABEL} is attached.\n\n${linkLine}\n\nHannah Cross | Chief of Staff\ncos.gregshindler@gmail.com`;
+  const subject  = `VELA Morning Brief - ${TODAY_LABEL}`;
+  const linkLine = driveLink ? `Drive link: ${driveLink}` : 'Drive upload failed - brief attached directly.';
+  const bodyText = `Good morning,\n\nYour morning intelligence brief for ${TODAY_LABEL} is attached.\n\n${linkLine}\n\nHannah Cross | Chief of Staff\ncos.gregshindler@gmail.com`;
 
-  const sendScript = path.join(HOME, '.openclaw/tools/send_email_with_attachment.sh');
-  if (fs.existsSync(sendScript)) {
-    spawnSync('bash', [sendScript, EMAIL_FROM, EMAIL_TO, GOG_ACCOUNT, subject, body, pdfPath], { encoding: 'utf8' });
+  // Write body to temp file - avoids stdin permission issues on macOS
+  const bodyFile = path.join(OUT_DIR, '.email_body.txt');
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.writeFileSync(bodyFile, bodyText);
+
+  const r = spawnSync('gog-wrapper', [
+    'gmail', 'send',
+    '--from',      EMAIL_FROM,
+    '--to',        EMAIL_TO,
+    '--cc',        GOG_ACCOUNT,
+    '--subject',   subject,
+    '--body-file', bodyFile,
+    '--attach',    pdfPath,
+    '-a',          GOG_ACCOUNT,
+    '-y'
+  ], { encoding: 'utf8' });
+
+  try { fs.unlinkSync(bodyFile); } catch {}
+
+  if (r.status !== 0) {
+    console.warn('Email warning:', r.stdout || r.stderr);
   } else {
-    const r = spawnSync('bash', ['-c',
-      `gog-wrapper gmail send --from "${EMAIL_FROM}" --to "${EMAIL_TO}" --cc "${GOG_ACCOUNT}" --subject "${subject}" --body-file /dev/stdin --attach "${pdfPath}" -a ${GOG_ACCOUNT} 2>&1`
-    ], { encoding: 'utf8' });
-    if (r.status !== 0) console.warn('Email warning:', r.stdout);
+    console.log(`Email sent to ${EMAIL_TO}`);
   }
-  console.log(`Email sent to ${EMAIL_TO}`);
 }
 
 // ─── TELEGRAM ────────────────────────────────────────────────────────────────
@@ -252,13 +266,13 @@ function buildContent(data) {
   let todaysCall;
 
   if (urgentDecision && top1) {
-    todaysCall = `If you do one thing today: resolve the "${urgentDecision[0]}" decision — revisit is ${urgentDecision[3]} and leaving it open gates movement on ${top1[1]}. One decision, multiple unblocked priorities.`;
+    todaysCall = `If you do one thing today: make a call on "${urgentDecision[0]}" — revisit date is ${urgentDecision[3]}. Leaving it open gates downstream movement. One decision, multiple priorities unblocked.`;
   } else if (top1) {
     const [,entityId, objective, nextAction, deadline, urgency, momentum] = top1;
     if (urgency === 'now' && deadline) {
-      todaysCall = `If you do one thing today: ${nextAction} on ${objective} — deadline is ${deadline}, momentum is ${momentum}. Everything downstream waits on this.`;
+      todaysCall = `If you do one thing today: advance ${objective}. Next move: ${nextAction}. Deadline is ${deadline} and momentum is ${momentum}. Everything downstream waits on this.`;
     } else {
-      todaysCall = `If you do one thing today: advance ${objective} — ${nextAction}. Highest-ranked priority and most likely to compound if it moves today.`;
+      todaysCall = `If you do one thing today: advance ${objective}. Next move: ${nextAction}. Highest-ranked priority and most likely to compound if it moves today.`;
     }
   } else {
     todaysCall = 'Priority data unavailable. Verify hannah.db before the day starts.';
@@ -315,7 +329,7 @@ function buildContent(data) {
 
     // Try to parse a date from the By: field
     const isoMatch  = byRaw.match(/(\d{4}-\d{2}-\d{2})/);
-    const textMatch = byRaw.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+    const textMatch = byRaw.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:\s+at\s+[\d:apmPMAM\s]+(?:PT|ET|UTC)?)?(?:,?\s*(\d{4}))?/i);
 
     let byDate = null;
     if (isoMatch) {
@@ -528,11 +542,67 @@ async function main() {
   console.log('Sending email...');
   sendEmail(deliverPath, driveLink);
 
-  const p1     = priorities[0];
-  const tgLine1 = p1 ? `Priority 1: ${p1[2] || p1[1]} — ${p1[3] || 'no next action'}` : 'No priority data.';
-  const tgLine2 = `Decisions open: ${decisions.length} | Commitments tracked: ${(commitmentTracker.match(/\d{4}-\d{2}-\d{2}/g)||[]).length}`;
-  const tgLine3 = driveLink ? `Brief: ${driveLink}` : 'Drive upload failed — check email for attachment.';
-  const tgMsg   = `*VELA Morning Brief \u2014 ${TODAY_LABEL}*\n\n${tgLine1}\n${tgLine2}\n\n${tgLine3}`;
+  const p1 = priorities[0];
+  const p2 = priorities[1];
+  const p3 = priorities[2];
+
+  // Build one-liner per section — omit if no content
+  const tgLines = [];
+  tgLines.push(`*VELA Morning Brief - ${TODAY_LABEL}*`);
+  tgLines.push('');
+
+  // Today's Call
+  if (p1) {
+    const [,, obj, nxt, dl, urg] = p1;
+    tgLines.push(`*Call:* Advance ${obj}${dl ? ' by ' + dl : ''}. Next: ${nxt}.`);
+  }
+
+  // Command Layer — top 3 compressed
+  if (p1) {
+    const items = priorities.slice(0, 3).map(([rank,,obj,,,urg]) => `${rank}. ${obj} [${urg}]`).join(' / ');
+    tgLines.push(`*Priorities:* ${items}`);
+  }
+
+  // Commitments
+  const totalDue = due.length + overdue.length + atRisk.length;
+  if (totalDue > 0) {
+    const parts = [];
+    if (due.length)     parts.push(`${due.length} due in 48h`);
+    if (overdue.length) parts.push(`${overdue.length} overdue`);
+    if (atRisk.length)  parts.push(`${atRisk.length} at risk`);
+    tgLines.push(`*Commitments:* ${parts.join(', ')}`);
+  }
+
+  // Calendar
+  if (calendarEvents.length > 0) {
+    const evts = calendarEvents.slice(0, 2).map(e => `${e.time} ${e.summary}`).join(', ');
+    tgLines.push(`*Calendar:* ${evts}`);
+  }
+
+  // Inbox
+  if (inboxItems.length > 0) {
+    tgLines.push(`*Inbox:* ${inboxItems.length} priority item${inboxItems.length > 1 ? 's' : ''} — ${inboxItems[0].sender}`);
+  }
+
+  // Decisions
+  if (decisions.length > 0) {
+    const urgentDecs = decisions.filter(d => d[3] && (new Date(d[3]) - NOW) / 86400000 <= 3);
+    if (urgentDecs.length > 0) {
+      tgLines.push(`*Decisions:* ${urgentDecs[0][0]} revisit ${urgentDecs[0][3]}`);
+    } else {
+      tgLines.push(`*Decisions:* ${decisions.length} open`);
+    }
+  }
+
+  // Signals
+  if (signalsToday.length > 0) {
+    tgLines.push(`*Signal:* ${signalsToday[0][2]} — IUM ${signalsToday[0][4]} — ${signalsToday[0][5]}`);
+  }
+
+  tgLines.push('');
+  tgLines.push(driveLink ? `Full brief: ${driveLink}` : 'Drive upload failed - check email for attachment.');
+
+  const tgMsg = tgLines.join('\n');
 
   sendTelegram(tgMsg);
   console.log('\n--- TELEGRAM MESSAGE ---');
