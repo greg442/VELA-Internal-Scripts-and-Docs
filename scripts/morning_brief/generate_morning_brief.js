@@ -196,7 +196,7 @@ function sendTelegram(msg) {
   const token  = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_USER_CHAT_ID;
   if (!token || !chatId) { console.warn('Telegram credentials missing from .env'); return; }
-  const body = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+  const body = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' });
   const req = https.request({ hostname: 'api.telegram.org', path: `/bot${token}/sendMessage`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': body.length } }, res => res.resume());
   req.on('error', e => console.warn('Telegram error:', e.message));
   req.write(body); req.end();
@@ -623,24 +623,32 @@ async function main() {
   tgLines.push('');
   tgLines.push(driveLink ? `Full brief: ${driveLink}` : 'Drive upload failed - check email for attachment.');
 
-  // Build final Telegram message — standard Markdown mode
-  // Bold = *text*, no escaping needed for standard Markdown
-  // Add blank line after each labeled section for spacing
+  // Build final Telegram message — HTML parse mode (most reliable for bold + links)
+  function tgH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function bold(s) { return `<b>${tgH(s)}</b>`; }
+
   const tgMsgLines = [];
-  tgMsgLines.push(`*VELA Morning Brief \u2014 ${TODAY_LABEL}*`);
+  tgMsgLines.push(bold(`VELA Morning Brief \u2014 ${TODAY_LABEL}`));
   tgMsgLines.push('');
 
   tgLines.slice(2).forEach(line => {
-    if (line === '') return; // skip blanks from tgLines — we control spacing here
+    if (line === '') return;
     const labelMatch = line.match(/^\*(.+?):\*\s*(.*)$/);
     if (labelMatch) {
-      // Strip any chars that break standard Markdown bold: underscores
-      const labelClean   = labelMatch[1].replace(/_/g, '-');
-      const contentClean = labelMatch[2].replace(/_/g, '-');
-      tgMsgLines.push(`*${labelClean}:* ${contentClean}`);
+      tgMsgLines.push(`${bold(labelMatch[1] + ':')} ${tgH(labelMatch[2])}`);
       tgMsgLines.push('');
     } else {
-      tgMsgLines.push(line.replace(/_/g, '-'));
+      // Plain line — just escape HTML, preserve Drive link as-is
+      if (line.startsWith('Full brief:')) {
+        const urlMatch = line.match(/(https?:\/\/\S+)/);
+        if (urlMatch) {
+          tgMsgLines.push(`Full brief: <a href="${urlMatch[1]}">${urlMatch[1]}</a>`);
+        } else {
+          tgMsgLines.push(tgH(line));
+        }
+      } else {
+        tgMsgLines.push(tgH(line));
+      }
     }
   });
 
