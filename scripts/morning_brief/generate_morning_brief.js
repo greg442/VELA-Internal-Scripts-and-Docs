@@ -127,7 +127,8 @@ async function getDriveToken() {
   const auth = JSON.parse(fs.readFileSync(DRIVE_AUTH, 'utf8'));
   return new Promise(resolve => {
     const body = JSON.stringify({ client_id: auth.client_id, client_secret: auth.client_secret, refresh_token: auth.refresh_token, grant_type: 'refresh_token' });
-    const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': body.length } }, res => {
+    const bodyLen = Buffer.byteLength(body);
+    const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': bodyLen } }, res => {
       let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d).access_token); } catch { resolve(null); } });
     });
     req.on('error', () => resolve(null)); req.write(body); req.end();
@@ -196,8 +197,9 @@ function sendTelegram(msg) {
   const token  = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_USER_CHAT_ID;
   if (!token || !chatId) { console.warn('Telegram credentials missing from .env'); return; }
-  const body = JSON.stringify({ chat_id: chatId, text: msg });
-  const req = https.request({ hostname: 'api.telegram.org', path: `/bot${token}/sendMessage`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': body.length } }, res => res.resume());
+  const body = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' });
+  const bodyLen = Buffer.byteLength(body);
+  const req = https.request({ hostname: 'api.telegram.org', path: `/bot${token}/sendMessage`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': bodyLen } }, res => res.resume());
   req.on('error', e => console.warn('Telegram error:', e.message));
   req.write(body); req.end();
 }
@@ -270,8 +272,7 @@ function buildContent(data) {
   } else if (top1) {
     const [,entityId, objective, nextAction, deadline, urgency, momentum] = top1;
     if (urgency === 'now' && deadline) {
-      const cleanAction = (nextAction || '').replace(/\.+$/, '');
-      todaysCall = `If you do one thing today: advance ${objective}. Next move: ${cleanAction}. Deadline is ${deadline} and momentum is ${momentum}. Everything downstream waits on this.`;
+      todaysCall = `If you do one thing today: advance ${objective}. Next move: ${nextAction}. Deadline is ${deadline} and momentum is ${momentum}. Everything downstream waits on this.`;
     } else {
       todaysCall = `If you do one thing today: advance ${objective}. Next move: ${nextAction}. Highest-ranked priority and most likely to compound if it moves today.`;
     }
@@ -403,7 +404,7 @@ function buildContent(data) {
   els.push(hr());
 
   const highPri = relationships.filter(r => r[2] === 'high');
-  const needsContact = highPri.filter(([,lastContact]) => !lastContact || lastContact === 'null' || (NOW - new Date(lastContact)) / 86400000 > 5);
+  const needsContact = highPri.filter(([,lastContact]) => !lastContact || lastContact === 'null' || (NOW - new Date(lastContact)) / 86400000 > 7);
   const drifting     = highPri.filter(([,lastContact]) => { if (!lastContact || lastContact === 'null') return false; const d = (NOW - new Date(lastContact)) / 86400000; return d > 14 && d <= 30; });
   const trustItems   = overdue.filter(l => highPri.some(([name]) => l.toLowerCase().includes(name.toLowerCase())));
 
@@ -503,7 +504,7 @@ async function main() {
   console.log('Querying hannah.db...');
   const priorities     = sql(`SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum FROM priorities ORDER BY rank ASC LIMIT 6`);
   const decisions      = sql(`SELECT title, decision, context, revisit_date, status FROM decisions WHERE status='active' ORDER BY revisit_date ASC`);
-  const signalsToday   = sql(`SELECT ts, source, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-24 hours') AND ium_score >= 7 AND (action_taken IS NULL OR action_taken = '') ORDER BY ium_score DESC`);
+  const signalsToday   = sql(`SELECT ts, source, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-24 hours') AND ium_score >= 7 ORDER BY ium_score DESC`);
   const signalsWeek    = sql(`SELECT ts, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-7 days') AND (action_taken IS NULL OR action_taken = '') ORDER BY ts DESC LIMIT 100`);
   const relationships  = sql(`SELECT name, last_contact, strategic_val, status, next_action FROM entities WHERE type='relationship' ORDER BY last_contact ASC`);
   const deals          = sql(`SELECT name, status, momentum, stage, next_action, last_updated, strategic_val FROM entities WHERE type IN ('deal','priority') ORDER BY momentum DESC`);
@@ -624,25 +625,32 @@ async function main() {
   tgLines.push('');
   tgLines.push(driveLink ? `Full brief: ${driveLink}` : 'Drive upload failed - check email for attachment.');
 
-  // Build plain text Telegram message — no markdown, no HTML
-  // Clean structure: LABEL / content, blank line between sections
+  // Build final Telegram message — HTML parse mode (most reliable for bold + links)
+  function tgH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function bold(s) { return `<b>${tgH(s)}</b>`; }
+
   const tgMsgLines = [];
-  tgMsgLines.push(`VELA Morning Brief - ${TODAY_LABEL}`);
-  tgMsgLines.push('--------------------');
+  tgMsgLines.push(bold(`VELA Morning Brief \u2014 ${TODAY_LABEL}`));
   tgMsgLines.push('');
 
   tgLines.slice(2).forEach(line => {
     if (line === '') return;
     const labelMatch = line.match(/^\*(.+?):\*\s*(.*)$/);
     if (labelMatch) {
-      tgMsgLines.push(`${labelMatch[1].toUpperCase()}`);
-      tgMsgLines.push(labelMatch[2]);
+      tgMsgLines.push(`${bold(labelMatch[1] + ':')} ${tgH(labelMatch[2])}`);
       tgMsgLines.push('');
-    } else if (line.startsWith('Full brief:')) {
-      const urlMatch = line.match(/(https?:\/\/\S+)/);
-      tgMsgLines.push(urlMatch ? urlMatch[1] : line);
     } else {
-      tgMsgLines.push(line);
+      // Plain line — just escape HTML, preserve Drive link as-is
+      if (line.startsWith('Full brief:')) {
+        const urlMatch = line.match(/(https?:\/\/\S+)/);
+        if (urlMatch) {
+          tgMsgLines.push(`Full brief: <a href="${urlMatch[1]}">${urlMatch[1]}</a>`);
+        } else {
+          tgMsgLines.push(tgH(line));
+        }
+      } else {
+        tgMsgLines.push(tgH(line));
+      }
     }
   });
 
