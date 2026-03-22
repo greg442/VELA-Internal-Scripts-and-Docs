@@ -63,7 +63,7 @@ After triage, send Greg a Telegram summary:
 
 #### PRE-FLIGHT: Database First (mandatory — run before any other tool call)
 
-Query hannah.db in this order. Do not touch email or calendar until all four queries complete.
+Query hannah.db in this order. Do not touch email or calendar until all queries complete.
 If hannah.db is unreachable, abort the brief and send Telegram: "Morning brief aborted — hannah.db unreachable. [error detail]."
 
 ```sql
@@ -71,31 +71,42 @@ If hannah.db is unreachable, abort the brief and send Telegram: "Morning brief a
 SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum
 FROM priorities ORDER BY rank ASC LIMIT 6;
 
--- 2. Commitments due within 48 hours
-SELECT key, value, source FROM memory
-WHERE category = 'commitment' AND date(value) <= date('now', '+2 days');
-
--- 3. Open decisions approaching revisit (next 5 days)
-SELECT title, decision, revisit_date, status FROM decisions
-WHERE status = 'active' AND date(revisit_date) <= date('now', '+5 days')
+-- 2. Open decisions, all active
+SELECT title, decision, context, revisit_date, status
+FROM decisions WHERE status = 'active'
 ORDER BY revisit_date ASC;
 
--- 4. Signals last 24 hours, IUM 7+
-SELECT ts, source, entity_id, signal_type, ium_score, summary FROM signals
-WHERE ts >= datetime('now', '-24 hours') AND ium_score >= 7
+-- 3. Signals last 24 hours, IUM 7+
+SELECT ts, source, entity_id, signal_type, ium_score, summary
+FROM signals WHERE ts >= datetime('now', '-24 hours') AND ium_score >= 7
 ORDER BY ium_score DESC;
+
+-- 4. All signals last 7 days (pattern detection, any IUM)
+SELECT ts, entity_id, signal_type, ium_score, summary
+FROM signals WHERE ts >= datetime('now', '-7 days')
+ORDER BY ts DESC;
+
+-- 5. Relationship contacts — last touch and strategic value
+SELECT name, last_contact, strategic_val, status, next_action
+FROM entities WHERE type = 'relationship'
+ORDER BY last_contact ASC;
+
+-- 6. Active deals and priorities — momentum and stage
+SELECT name, status, momentum, stage, next_action, last_updated, strategic_val
+FROM entities WHERE type IN ('deal', 'priority')
+ORDER BY momentum DESC;
 ```
 
-Also load COMMITMENT_TRACKER.md and extract all entries with hard dates in the next 48 hours.
+Also load COMMITMENT_TRACKER.md in full before proceeding.
 
 Tool call order is enforced:
-1. hannah.db queries
+1. hannah.db queries (all six)
 2. COMMITMENT_TRACKER.md
 3. Calendar (apply CALENDAR FILTER RULE before reading anything)
 4. Gmail inbox (apply priority contact filter before reading anything)
-5. Assemble and render brief
+5. Synthesize and render brief
 
-Email is input four. Not input one.
+Email is input four. Not input one. The brief is a synthesis document, not a recap.
 
 ---
 
@@ -134,34 +145,51 @@ Deliver via Telegram: 3-line summary + Google Drive link.
 
 Do not add sections not listed here. Do not add filler. Every line earns its place.
 No personal optimization. No tomorrow preview. No blank pages.
+The brief is not a dashboard recap. It thinks. It connects. It has a point of view.
 
 ---
 
-**COMMAND LAYER**
+**1. TODAY'S CALL**
+
+One sentence. One verdict. The single most important move Greg should make today and why.
+Draw from the full pre-flight picture: priorities, commitments, decisions, relationships, signals.
+This is Hannah's judgment call. Make it.
+
+Format:
+If you do one thing today: [action] — because [consequence of doing it or not doing it].
+
+---
+
+**2. COMMAND LAYER**
 
 Top 3 priorities. One line each. Source: priorities table, ranks 1-3.
 
 Format:
 [Rank]. [Entity / Objective] — [Next action] | Urgency: [urgency] | Momentum: [momentum] | Deadline: [deadline or none]
 
-Example:
-1. Colel Palmilla — Sign LOI | Urgency: now | Momentum: rising | Deadline: March 25
+---
+
+**3. COMMITMENT PRESSURE**
+
+Synthesize COMMITMENT_TRACKER.md and hannah.db memory (category: commitment) into three sub-sections.
+Do not list every commitment. Surface what matters and why.
+
+Due in 48 hours:
+[Date] — [Commitment] — [Who it's with or what it gates]
+
+At risk of slipping:
+Commitments where the upstream work is not done and the deadline is approaching.
+[Commitment] — [What's not done] — [Who is affected if it slips]
+
+Credibility at risk:
+Commitments to priority contacts that are overdue by 3+ days. Name the relationship cost plainly.
+[Commitment] — [Days overdue] — [Relationship impact]
+
+If a sub-section has nothing to surface, omit it. Do not write "none."
 
 ---
 
-**COMMITMENTS DUE — 48-Hour Window**
-
-Hard dates only. No soft follow-ups.
-Source: COMMITMENT_TRACKER.md and hannah.db memory table (category: commitment).
-
-Format:
-[Date/Time] — [Commitment description] — [Who it's with or what it gates]
-
-If nothing due: "No hard commitments in the next 48 hours."
-
----
-
-**CALENDAR INTELLIGENCE**
+**4. CALENDAR INTELLIGENCE**
 
 Real meetings only. Recurring personal blocks are invisible (see CALENDAR FILTER RULE).
 One prep note per meeting drawn from hannah.db or LIVE_PRIORITY_MAP.md context. Do not invent prep notes.
@@ -176,14 +204,14 @@ If no real meetings: "Calendar is clear."
 
 ---
 
-**INBOX: WHAT ACTUALLY MATTERS**
+**5. INBOX: WHAT ACTUALLY MATTERS**
 
 Render only:
 - Emails from priority contacts (defined in DISPATCH_RULES.md or entities with strategic_val = high)
 - Emails directly tied to active deals or open priorities in hannah.db
 - Emails requiring a same-day decision or response
 
-Everything else is invisible. No "Greg to review" catch-all. If an email does not meet the above criteria, it does not appear.
+Everything else is invisible. No "Greg to review" catch-all. If an email does not meet the criteria, it does not appear.
 
 Format:
 [Sender] — [Subject]
@@ -194,27 +222,52 @@ If nothing qualifies: "Inbox is clear of priority items."
 
 ---
 
-**DECISIONS ON THE TABLE**
+**6. RELATIONSHIP TEMPERATURE**
 
-Source: hannah.db decisions table, status = active, revisit_date within 5 days.
+Source: entities table (type = relationship), signals table, COMMITMENT_TRACKER.md.
+Do not list all contacts. Surface only what requires attention today.
 
-Format:
-[Decision title]
-  Made: [ts] | Revisit: [revisit_date]
-  Status: [one line on where things stand, from context field if available]
+Who needs contact now:
+Contacts where last_contact is overdue relative to their strategic value or an open commitment exists.
+[Name] — [Last contact: X days ago] — [Why it matters today] — [Suggested move]
 
-If none approaching: "No decisions requiring revisit in the next 5 days."
+Who is drifting:
+Contacts who were active and have gone quiet. Flag the pattern.
+[Name] — [What changed] — [Risk if not addressed]
+
+Trust ledger:
+Where a commitment to a contact, if cleared today, unblocks something else.
+[Name] — [Commitment] — [What it unblocks]
+
+If a sub-section has nothing to surface, omit it. Do not write "none."
 
 ---
 
-**SIGNALS**
+**7. DECISION PRESSURE**
 
-Source: hannah.db signals table, last 24 hours, IUM 7+.
-If nothing qualifies, omit this section entirely.
+Source: hannah.db decisions table, status = active.
+Do not list all open decisions. Surface only the one or two where inaction today creates downstream damage.
 
 Format:
-[Entity] — [Signal type] — IUM [score]
-  [Summary, one sentence]
+[Decision title]
+  Revisit: [revisit_date]
+  If not decided today: [specific consequence — what closes, stalls, or degrades]
+  Recommendation: [Hannah's recommended move]
+
+If no decisions are time-sensitive today: omit this section entirely.
+
+---
+
+**8. WHAT HANNAH IS WATCHING**
+
+Patterns, weak signals, and instincts that have not crossed the IUM threshold but warrant attention.
+This is not a signal log. This is Hannah's read on what is developing beneath the surface.
+Maximum 3 items. Each one should be something Greg would want to know but would not find in the dashboard.
+
+Format:
+[Item] — [What Hannah is noticing] — [Why it could matter]
+
+If nothing worth surfacing: omit this section entirely.
 
 ---
 
