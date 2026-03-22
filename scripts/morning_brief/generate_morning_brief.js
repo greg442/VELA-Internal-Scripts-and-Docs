@@ -404,7 +404,7 @@ function buildContent(data) {
   els.push(hr());
 
   const highPri = relationships.filter(r => r[2] === 'high');
-  const needsContact = highPri.filter(([,lastContact]) => !lastContact || lastContact === 'null' || (NOW - new Date(lastContact)) / 86400000 > 7);
+  const needsContact = highPri.filter(([,lastContact]) => !lastContact || lastContact === 'null' || (NOW - new Date(lastContact)) / 86400000 > 5);
   const drifting     = highPri.filter(([,lastContact]) => { if (!lastContact || lastContact === 'null') return false; const d = (NOW - new Date(lastContact)) / 86400000; return d > 14 && d <= 30; });
   const trustItems   = overdue.filter(l => highPri.some(([name]) => l.toLowerCase().includes(name.toLowerCase())));
 
