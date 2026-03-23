@@ -97,6 +97,15 @@ body { font-family: 'Lato', -apple-system, sans-serif; background: var(--body); 
 .sig-ent { font-size: 12px; font-weight: 700; }
 .sig-ts { font-family: 'Courier New', monospace; font-size: 9px; color: var(--mut); }
 .sig-body { font-size: 11px; color: var(--mut); line-height: 1.5; }
+.sig { cursor: pointer; }
+.sig:hover .sig-top { opacity: .85; }
+.sig-detail { display: none; margin-top: 8px; padding: 10px 12px; background: var(--surf); border-radius: 6px; border-left: 2px solid var(--ol); }
+.sig.expanded .sig-detail { display: block; }
+.sig-detail-row { margin-bottom: 8px; }
+.sig-detail-row:last-child { margin-bottom: 0; }
+.sig-detail-lbl { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ol); margin-bottom: 3px; }
+.sig-detail-val { font-size: 11px; color: var(--mut); line-height: 1.5; }
+.sig-info-btn { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--ol); color: var(--ol); font-size: 9px; font-weight: 700; margin-left: 6px; flex-shrink: 0; font-family: Georgia, serif; }
 
 /* Bottom panels */
 .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
@@ -385,22 +394,46 @@ async function loadAll() {
   }
 
   // Signals today
-  const signals = await q("SELECT ts, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-24 hours') ORDER BY ium_score DESC LIMIT 10");
+  const signals = await q("SELECT ts, entity_id, signal_type, ium_score, summary, action_taken, source FROM signals WHERE ts >= datetime('now','-24 hours') ORDER BY ium_score DESC LIMIT 10");
   document.getElementById('count-signals').textContent = signals.length;
   const highSigs = signals.filter(s => parseInt(s.ium_score) >= 7).length;
   document.getElementById('sub-signals').textContent = highSigs + ' above IUM 7';
   if (signals.length === 0) {
     document.getElementById('list-signals').innerHTML = '<span class="empty">No signals in the last 24 hours.</span>';
   } else {
-    document.getElementById('list-signals').innerHTML = signals.map(s => `
-      <div class="sig">
+    document.getElementById('list-signals').innerHTML = signals.map((s, i) => {
+      const score = parseInt(s.ium_score) || 0;
+      const why = score >= 9 ? 'Critical — directly tied to a top priority with an imminent deadline. Immediate attention required.'
+        : score >= 7 ? 'High importance — active deal or relationship movement with a clear next action needed.'
+        : score >= 5 ? 'Notable — developing situation worth monitoring. May require action within 48 hours.'
+        : 'Informational — logged for context. No immediate action required.';
+      const connects = s.entity_id && s.entity_id !== 'null' ? s.entity_id : 'General';
+      const action = s.action_taken && s.action_taken !== 'null' ? s.action_taken : 'No action taken yet — may require attention.';
+      const source = s.source && s.source !== 'null' ? s.source : 'system';
+      return `<div class="sig" onclick="this.classList.toggle('expanded')">
         <div class="sig-top">
           <span class="sig-ent">${escape(s.entity_id || 'Signal')}</span>
           ${iumBadge(s.ium_score)}
           <span class="sig-ts">${escape(s.signal_type || '')} · ${timeAgo(s.ts)}</span>
+          <span class="sig-info-btn">i</span>
         </div>
         <div class="sig-body">${escape(s.summary || '')}</div>
-      </div>`).join('');
+        <div class="sig-detail">
+          <div class="sig-detail-row">
+            <div class="sig-detail-lbl">Why this scored IUM ${score}</div>
+            <div class="sig-detail-val">${escape(why)}</div>
+          </div>
+          <div class="sig-detail-row">
+            <div class="sig-detail-lbl">Connected to</div>
+            <div class="sig-detail-val">${escape(connects)} · Source: ${escape(source)}</div>
+          </div>
+          <div class="sig-detail-row">
+            <div class="sig-detail-lbl">What Hannah did</div>
+            <div class="sig-detail-val">${escape(action)}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // Commitments from memory table
