@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELA Morning Brief — March 23, 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --olive: #8B9F6B; --olive-light: #f4f7ef; --near-black: #2D2D2D;
+    --muted: #888; --divider: #e8e4dc; --surface: #f9f8f5;
+    --red: #C0392B; --red-bg: #fdf1f0; --amber: #c8860a; --amber-bg: #fdf8ee; --body-bg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --olive: #9fb87a; --olive-light: #1e2318; --near-black: #e8e6e0;
+      --muted: #888; --divider: #2a2a28; --surface: #1a1a18;
+      --red: #e05c4e; --red-bg: #2a1a18; --amber: #d4980f; --amber-bg: #231e10; --body-bg: #111110;
+    }
+  }
+  html { font-size: 16px; }
+  body { font-family: 'Lato', sans-serif; background: var(--body-bg); color: var(--near-black); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .brief-outer { max-width: 780px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+  .brief-header { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0 1.25rem; border-bottom: 0.5px solid var(--divider); margin-bottom: 2.75rem; }
+  .header-left { display: flex; align-items: center; gap: 11px; }
+  .reticle svg { display: block; opacity: 0.65; color: var(--near-black); }
+  .wordmark { font-family: Georgia, serif; font-size: 14px; letter-spacing: 7px; color: var(--near-black); font-weight: normal; }
+  .header-right { text-align: right; }
+  .header-label { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); display: block; line-height: 1.6; }
+  .verdict { font-family: Georgia, serif; font-size: 17px; line-height: 1.85; color: var(--near-black); margin-bottom: 3rem; padding-bottom: 2.5rem; border-bottom: 0.5px solid var(--divider); }
+  .section { margin-bottom: 2.75rem; padding-bottom: 2.75rem; border-bottom: 0.5px solid var(--divider); }
+  .section:last-of-type { border-bottom: none; }
+  .section-label { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--olive); margin-bottom: 1.25rem; display: block; }
+  .item { margin-bottom: 1.5rem; padding-left: 1.1rem; border-left: 2px solid var(--olive); }
+  .item:last-child { margin-bottom: 0; }
+  .item-title { font-size: 14px; font-weight: 700; color: var(--near-black); margin-bottom: 0.3rem; line-height: 1.5; }
+  .item-body { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 0.35rem; }
+  .item-rec { font-size: 12px; color: var(--olive); font-style: italic; line-height: 1.6; }
+  .badge { display: inline-block; font-family: 'Courier New', monospace; font-size: 8.5px; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
+  .badge-now { background: var(--red-bg); color: var(--red); }
+  .badge-soon { background: var(--amber-bg); color: var(--amber); }
+  .meeting { margin-bottom: 1.75rem; }
+  .meeting:last-child { margin-bottom: 0; }
+  .meeting-time { font-family: 'Courier New', monospace; font-size: 10.5px; letter-spacing: 1px; color: var(--muted); margin-bottom: 0.25rem; }
+  .meeting-title { font-size: 15px; font-weight: 700; color: var(--near-black); margin-bottom: 0.4rem; }
+  .meeting-intel { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 0.35rem; }
+  .meeting-rec { font-size: 12px; color: var(--olive); font-style: italic; line-height: 1.6; }
+  .rel-block { background: var(--surface); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .rel-block:last-child { margin-bottom: 0; }
+  .rel-name { font-size: 15px; font-weight: 700; color: var(--near-black); margin-bottom: 0.35rem; }
+  .rel-context { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 0.5rem; }
+  .rel-action { font-size: 12px; color: var(--olive); font-style: italic; }
+  .decision { margin-bottom: 1.5rem; }
+  .decision:last-child { margin-bottom: 0; }
+  .decision-title { font-size: 14px; font-weight: 700; color: var(--near-black); margin-bottom: 0.2rem; }
+  .decision-meta { font-family: 'Courier New', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 0.45rem; }
+  .decision-context { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 0.35rem; }
+  .decision-rec { font-size: 12px; color: var(--olive); font-style: italic; line-height: 1.6; }
+  .watch-item { margin-bottom: 1.1rem; padding-left: 1rem; border-left: 2px solid var(--divider); }
+  .watch-item:last-child { margin-bottom: 0; }
+  .watch-title { font-size: 13px; font-weight: 700; color: var(--near-black); margin-bottom: 0.2rem; }
+  .watch-body { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .brief-footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 0.5px solid var(--divider); display: flex; justify-content: space-between; align-items: center; }
+  .footer-text { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; color: var(--muted); opacity: 0.55; }
+  .refresh-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--olive); opacity: 0.6; margin-right: 6px; animation: pulse 3s ease-in-out infinite; vertical-align: middle; }
+  @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.2; } }
+  @media (max-width: 600px) { .brief-outer { padding: 0 1rem 4rem; } .verdict { font-size: 15px; } .brief-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; } .header-right { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="brief-outer">
+  <header class="brief-header">
+    <div class="header-left">
+      <div class="reticle">
+        <svg width="30" height="30" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="1"/>
+          <circle cx="50" cy="50" r="4" fill="currentColor"/>
+          <line x1="50" y1="5" x2="50" y2="20" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="50" y1="80" x2="50" y2="95" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="5" y1="50" x2="20" y2="50" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="80" y1="50" x2="95" y2="50" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="50" y1="20" x2="50" y2="35" stroke="currentColor" stroke-width="0.75" stroke-dasharray="2,2"/>
+          <line x1="50" y1="65" x2="50" y2="80" stroke="currentColor" stroke-width="0.75" stroke-dasharray="2,2"/>
+          <line x1="20" y1="50" x2="35" y2="50" stroke="currentColor" stroke-width="0.75" stroke-dasharray="2,2"/>
+          <line x1="65" y1="50" x2="80" y2="50" stroke="currentColor" stroke-width="0.75" stroke-dasharray="2,2"/>
+          <text x="50" y="92" text-anchor="middle" font-family="Georgia" font-size="5" fill="currentColor" opacity="0.5">VELA</text>
+        </svg>
+      </div>
+      <span class="wordmark">V E L A</span>
+    </div>
+    <div class="header-right">
+      <span class="header-label">Morning Intelligence Brief</span>
+      <span class="header-label">Monday, March 23, 2026</span>
+    </div>
+  </header>
+
+  <div class="verdict">
+    Today is a positioning day before a decision day. Hatfield's LOI arrives Wednesday — which means today is your last clean window to align with legal before you're in reaction mode. The Cook call at noon isn't a catchup, it's a credibility touch with the most important voice in the April 10 DD room. Tom Noons has been waiting 12 days for something you promised him. That window closes Thursday. Everything else on your plate today is either downstream of those three things or it can wait.
+  </div>
+
+  <div class="section">
+    <span class="section-label">What only you can do today</span>
+    <div class="item">
+      <div class="item-title">Align with legal on LOI terms before Hatfield's paper arrives <span class="badge badge-now">now</span></div>
+      <div class="item-body">Once the term sheet lands Wednesday you're reacting to their language. Today you set your anchors. One call, 30 minutes. Done means you know your walk-away on title structure before you read their draft.</div>
+      <div class="item-rec">Hannah: schedule before noon. Block 45 minutes.</div>
+    </div>
+    <div class="item">
+      <div class="item-title">Send Tom Noons the LOI summary <span class="badge badge-now">now</span></div>
+      <div class="item-body">You committed to this 12 days ago. Westwood's wire is gated on the Hatfield close. Noons hasn't asked yet — but at 14 days he will, and then it becomes awkward. This is a 10-minute email.</div>
+      <div class="item-rec">Hannah: draft is ready. Review and send before the Cook call.</div>
+    </div>
+    <div class="item">
+      <div class="item-title">Book Casey Federman for April 10 DD call <span class="badge badge-soon">soon</span></div>
+      <div class="item-body">18 days out. Prep packet needs to start this week. Casey's window is open via Brooke. Confirming the group triggers everything downstream.</div>
+      <div class="item-rec">Hannah: one Telegram message to Brooke. I can draft it.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-label">Your day, interpreted</span>
+    <div class="meeting">
+      <div class="meeting-time">9:00 AM — 30 min</div>
+      <div class="meeting-title">Greg and Jason</div>
+      <div class="meeting-intel">Jason is a VELA pilot candidate introduced through a trusted channel. These windows don't stay open. He reached out — intent is there. This call determines whether he moves to install or goes cold.</div>
+      <div class="meeting-rec">Walk in with the one-page overview and pricing. If there's fit, close on next steps before you hang up.</div>
+    </div>
+    <div class="meeting">
+      <div class="meeting-time">12:00 PM — 30 min</div>
+      <div class="meeting-title">Cook — GMeet</div>
+      <div class="meeting-intel">Dr. Cook is your lead medical voice for the Costa Palmas DD call on April 10. This isn't a social call — he's forming his read on the deal and on you right now. How you show up in this conversation shapes how he shows up in that room.</div>
+      <div class="meeting-rec">Ask him directly how he's thinking about Costa Palmas. What does he need to feel confident on April 10. Don't leave without knowing his answer.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-label">The relationship that needs you today</span>
+    <div class="rel-block">
+      <div class="rel-name">Tom Noons — Westwood Group</div>
+      <div class="rel-context">12 days since last contact. You committed to sending the LOI summary before the next conversation. He hasn't asked because he's giving you room. That room runs out Thursday. When he has to ask, the dynamic shifts — you go from proactive partner to someone who needs to be chased going into the wire conversation.</div>
+      <div class="rel-action">Send the LOI summary today. Draft is ready. 10 minutes.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-label">What is about to quietly die</span>
+    <div class="item">
+      <div class="item-title">Costa Palmas DD prep</div>
+      <div class="item-body">April 10 is 18 days away. The prep packet needs to start this week. There's no hard deadline forcing anyone to notice it's not moving. That's exactly how DD calls go wrong. One week from now you'll be 11 days out and behind.</div>
+      <div class="item-rec">Today: confirm Casey via Brooke. That one action starts the clock on everything else.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-label">Hannah's recommendations</span>
+    <div class="decision">
+      <div class="decision-title">VELA Pricing — Single Tier vs. Multi-Tier</div>
+      <div class="decision-meta">Revisit: March 27 — 3 days</div>
+      <div class="decision-context">The multi-tier complexity is slowing the Bradley Smith pilot. You don't need four tiers to validate the model — you need one paying client and proof of concept.</div>
+      <div class="decision-rec">My recommendation: launch single tier at $1,500. Decide by Friday. Don't let architecture debate delay the first dollar.</div>
+    </div>
+    <div class="decision">
+      <div class="decision-title">Houston — Grayson's Birthday, April 23</div>
+      <div class="decision-meta">Revisit: April 10 — 17 days</div>
+      <div class="decision-context">No business implication either way. But April 10 revisit puts this decision in the same week as the Costa Palmas DD call — bad timing to add travel logistics.</div>
+      <div class="decision-rec">My recommendation: decide now while the calendar is clean. Don't carry this into a busy week.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="section-label">What Hannah is watching</span>
+    <div class="watch-item">
+      <div class="watch-title">Ricardo — silence pattern</div>
+      <div class="watch-body">7 days without response. The deal was active last week. Not threshold yet but the pattern — active then quiet — is worth tracking. If it hits 10 days without movement I'll surface it as a risk signal.</div>
+    </div>
+    <div class="watch-item">
+      <div class="watch-title">Bradley Smith pilot window</div>
+      <div class="watch-body">Introduced through introduction-only channel. April 15 internal assumption. These windows compress fast once initial energy fades. VELA pricing decision directly affects whether this moves this week or slips to next month.</div>
+    </div>
+  </div>
+
+  <div class="brief-footer">
+    <span class="footer-text"><span class="refresh-dot"></span>Generated by Hannah · 6:00 AM ET · March 23, 2026</span>
+    <span class="footer-text">VELA · Private Command Infrastructure</span>
+  </div>
+</div>
+<script>setTimeout(function(){ location.reload(); }, 300000);</script>
+</body>
+</html>

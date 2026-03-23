@@ -1,0 +1,255 @@
+Good morning. Run the morning intelligence brief now. Follow every step in order. Do not skip steps. Do not summarize to me until the brief is complete and delivered.
+
+---
+
+STEP 1 — LOAD YOUR WORLD
+
+Run these queries against hannah.db before doing anything else:
+
+sqlite3 ~/.openclaw/hannah.db "SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum FROM priorities ORDER BY rank ASC LIMIT 6;"
+
+sqlite3 ~/.openclaw/hannah.db "SELECT title, context, decision, revisit_date, status FROM decisions WHERE status='active' ORDER BY revisit_date ASC;"
+
+sqlite3 ~/.openclaw/hannah.db "SELECT ts, entity_id, signal_type, ium_score, summary, action_taken FROM signals WHERE ts >= datetime('now','-7 days') ORDER BY ts DESC LIMIT 50;"
+
+sqlite3 ~/.openclaw/hannah.db "SELECT name, last_contact, strategic_val, next_action FROM entities WHERE type='relationship' ORDER BY last_contact ASC;"
+
+sqlite3 ~/.openclaw/hannah.db "SELECT name, status, momentum, stage, next_action, last_updated FROM entities WHERE type IN ('deal','priority') ORDER BY momentum DESC;"
+
+Read COMMITMENT_TRACKER.md in full.
+
+Then query calendar:
+gog-wrapper calendar list -a greg@gregshindler.com --days 1
+
+Filter calendar: exclude any event containing these words (case-insensitive): no igf, no peptides, trizepitide, tirzepatide, semaglutide, injection, supplement, workout, rest day, weigh-in, fasting, clear hannah, launch sequence, deep work, do not book, break, lunch, protected, email triage, decisions queue
+
+What remains after filtering is the real calendar.
+
+Then check inbox for anything from priority contacts only:
+gog-wrapper gmail search "is:unread is:important" -a greg@gregshindler.com --limit 20
+
+---
+
+STEP 2 — THINK BEFORE YOU WRITE
+
+Read everything you just loaded. Do not start writing sections yet.
+
+Ask yourself:
+- What kind of day is today? What is the single most important thing that must happen?
+- What requires Greg specifically and cannot be delegated or deferred?
+- Which relationship is degrading right now and will cost something real if not addressed today?
+- What is losing momentum with no deadline forcing anyone to notice?
+- Which open decisions require a call today specifically — not just eventually?
+- What are you seeing in the signals and patterns that Greg should be aware of but doesn't need to act on yet?
+
+Hold your answers. Now write.
+
+---
+
+STEP 3 — WRITE THE BRIEF
+
+Write each section as HTML snippets using the exact CSS classes listed. Hannah's voice throughout: direct, warm, specific. No filler. No hedging. Every sentence earns its place.
+
+Do not use em dashes. Use plain dashes or rewrite the sentence.
+
+OPENING VERDICT (no section label -- this is the first thing Greg reads)
+Before you write this paragraph, answer these questions in your head -- not on paper, just think through them:
+- If Greg only read one sentence today, what would it be?
+- What is the relationship between today's calendar and today's priorities? Do they align or is there tension?
+- What is the single commitment or action that, if done today, makes the most other things possible?
+- What is the one thing that could go quietly wrong today if nobody is watching it?
+
+Now write one paragraph, 4-6 sentences. This is not a summary of the sections below -- it is a read on the day from someone who has already thought it through. Name specific people, deals, and stakes. Tell Greg what kind of day this is and what it means. The paragraph should feel like it was dictated by a trusted advisor who knows the whole picture and is giving Greg the 30-second version before he walks into his morning. Do not list. Do not bullet. Write prose.
+
+HTML: plain paragraph text — no wrapper div needed, just the text itself.
+
+---
+
+SECTION: WHAT ONLY YOU CAN DO TODAY
+1-3 items maximum. Filter ruthlessly. Only include things that genuinely require Greg and cannot be delegated or deferred past today.
+
+For each item:
+<div class="item">
+  <div class="item-title">[Action title] <span class="badge badge-now">now</span></div>
+  <div class="item-body">[Why this requires Greg specifically. What done looks like. Be concrete.]</div>
+  <div class="item-rec">Hannah: [specific recommended move — draft ready, schedule this, one email, etc.]</div>
+</div>
+
+Use badge-now for urgency=now, badge-soon for urgency=soon.
+
+---
+
+SECTION: YOUR DAY, INTERPRETED
+Real meetings only (already filtered above). For each meeting write intelligence, not a schedule entry. Who is this person in Greg's world right now. What is at stake in this specific conversation. What Hannah recommends Greg accomplish in it.
+
+<div class="meeting">
+  <div class="meeting-time">[Time] -- [duration if known]</div>
+  <div class="meeting-title">[Meeting name]</div>
+  <div class="meeting-intel">[Who they are in Greg's world right now. What is at stake in this specific conversation today.]</div>
+  <div class="meeting-rec">[One specific thing Hannah recommends Greg accomplish or ask in this meeting.]</div>
+</div>
+
+If no real meetings: write a single line — "Calendar is clear."
+
+---
+
+SECTION: THE RELATIONSHIP THAT NEEDS YOU TODAY
+One, maybe two. Not a list of contacts. Before you write anything, reason through this:
+
+Look at every high-priority relationship. For each one where last_contact exceeds 5 days, ask:
+- Is there an open commitment to this person that is unfulfilled? If yes, how many days overdue?
+- Is there a deal or priority that is directly gated on this relationship? What specifically?
+- What does this person know, think, or feel right now about Greg -- and is that accurate?
+- If Greg does not reach out today, what specifically gets harder tomorrow?
+
+The relationship that belongs in this section is the one where the answer to that last question is most concrete and most costly. Name the stakes. Name the time pressure. Name what it will cost -- not in abstract terms but in specific deal movement, credibility, or momentum.
+
+<div class="rel-block">
+  <div class="rel-name">[Name] -- [Company or context]</div>
+  <div class="rel-context">[How long since last contact. What was committed. What the degradation looks like. What it will cost if not addressed today. Be specific and direct.]</div>
+  <div class="rel-action">[Single recommended action. Specific. How long it takes.]</div>
+</div>
+
+If all relationships are current: omit this section entirely. Do not write "relationships are current."
+
+---
+
+SECTION: WHAT IS ABOUT TO QUIETLY DIE
+One item. This is the section that requires the most judgment. There is no signal forcing this to the surface -- that is the point. You are looking for it.
+
+Scan every active deal, priority, and commitment. For each one ask:
+- When did this last visibly move? Not when it was last updated in the database -- when did something actually happen?
+- Is there a date coming up that requires preparation that has not started?
+- Is there a dependency -- a person who needs to be confirmed, a document that needs to be reviewed, a call that needs to be scheduled -- that nobody has acted on?
+- If nothing changes in the next 7 days, what breaks or becomes significantly harder?
+
+The item that belongs here is the one that is genuinely at risk of dying quietly -- not because it is unimportant but because there is no hard deadline making anyone pay attention to it. Surface it. Name the specific risk. Name the specific action that restarts the clock.
+
+<div class="item">
+  <div class="item-title">[What is dying]</div>
+  <div class="item-body">[Why it matters. How far out the risk is. Why nobody has noticed yet. Be specific.]</div>
+  <div class="item-rec">[The one action today that restarts the clock.]</div>
+</div>
+
+If nothing qualifies: omit this section entirely.
+
+---
+
+SECTION: HANNAH'S RECOMMENDATIONS
+Only decisions where inaction today creates a downstream problem. Filter ruthlessly -- most open decisions do not belong here. Only include a decision if you can answer yes to this question: does waiting one more day make something harder, more expensive, or more likely to fail?
+
+For each qualifying decision, reason through it fully before writing:
+- What is the actual current state of this decision? Not the background -- what is true right now?
+- Who or what is being affected by the delay? Name them specifically.
+- What are the real alternatives? Why is one better than the others given what you know?
+- What is the specific downstream consequence if Greg does not decide today?
+
+Then write it. Not a summary of the situation -- a recommendation from someone who has thought it through and is telling Greg what to do and why.
+
+<div class="decision">
+  <div class="decision-title">[Decision title]</div>
+  <div class="decision-meta">Revisit: [date] -- [days until revisit]d</div>
+  <div class="decision-context">[The current state and who is affected by the delay. Specific people, specific stakes, specific timeline. Not background -- what is true right now and what breaks if this sits another day.]</div>
+  <div class="decision-rec">My recommendation: [Hannah's call. Name the move, name the reason, name what it unblocks. Two to three sentences. She is not hedging. She has looked at the data and this is what she thinks Greg should do.]</div>
+</div>
+
+If no decisions meet that standard today: omit this section entirely. Do not include decisions just because they exist.
+
+---
+
+SECTION: WHAT HANNAH IS WATCHING (optional)
+Only include if there are genuine developing situations worth awareness. Not a signal log. Hannah's read on what is forming beneath the surface that does not require action today but warrants awareness.
+
+Maximum 2 items. If nothing real to say: omit entirely.
+
+<div class="watch-item">
+  <div class="watch-title">[What Hannah is watching]</div>
+  <div class="watch-body">[What she is noticing. Why it could matter. What would change her read on it.]</div>
+</div>
+
+---
+
+STEP 4 — ASSEMBLE THE HTML FILE
+
+Read the template at:
+~/.openclaw/morning_brief/brief_template.html
+
+Replace each placeholder with your content:
+- {{DATE_LABEL}} -- today's date formatted as: Monday, March 23, 2026
+- {{VERDICT}} -- your opening verdict paragraph
+- {{SECTION_TODAY}} -- the items HTML for "what only you can do today"
+- {{SECTION_CALENDAR}} -- the meetings HTML
+- {{SECTION_RELATIONSHIP}} -- the rel-block HTML (or remove the section block if omitted)
+- {{SECTION_MOMENTUM}} -- the quiet death item HTML (or remove if omitted)
+- {{SECTION_DECISIONS}} -- the decisions HTML (or remove if omitted)
+- {{SECTION_WATCHING}} -- the watching items HTML (or remove if omitted)
+- {{GENERATED_AT}} -- current time formatted as 6:00 AM
+
+For any omitted section, remove the entire section div including the {{#if}} wrapper from the template.
+
+Save the completed HTML to:
+~/.openclaw/datasette/static/briefs/$(date +%Y-%m-%d).html
+
+Create the briefs directory if it does not exist:
+mkdir -p ~/.openclaw/datasette/static/briefs/
+
+---
+
+STEP 5 -- ALSO SAVE AS TODAY.HTML
+
+Copy the file so there is always a stable URL:
+cp ~/.openclaw/datasette/static/briefs/$(date +%Y-%m-%d).html ~/.openclaw/datasette/static/briefs/today.html
+
+---
+
+STEP 6 -- GENERATE PDF FOR DRIVE ARCHIVE
+
+Run:
+node ~/.openclaw/morning_brief/generate_morning_brief.js --html-only
+
+This generates the PDF from the HTML and uploads it to Drive. If the script fails, skip and continue.
+
+---
+
+STEP 7 -- SEND EMAIL
+
+Send the brief to greg@gregshindler.com with the HTML link:
+
+Subject: VELA Morning Brief -- [today's date]
+From: cos.gregshindler@gmail.com
+Body: Good morning, your morning intelligence brief is ready. [HTML link]
+
+---
+
+STEP 8 -- SEND TELEGRAM
+
+Send Greg a Telegram message. Format:
+
+<b>VELA Morning Brief -- [DATE]</b>
+
+[First 2 sentences of the opening verdict]
+
+<b>Today:</b> [The single most important action from Section 2, one line]
+
+<b>Calendar:</b>
+[Each real meeting on its own line: TIME -- Meeting name]
+
+[If relationship section exists: <b>Relationship:</b> [Name] -- [one line stakes]]
+
+Full brief: http://100.89.207.104:8001/-/static/briefs/today.html
+
+---
+
+STEP 9 -- UPDATE YOUR OWN CONTEXT
+
+You generated this brief. You know everything in it. Log a memory entry so you carry this forward into the day:
+
+sqlite3 ~/.openclaw/hannah.db "INSERT INTO memory (ts, category, key, value, source) VALUES (datetime('now'), 'brief', 'morning_brief_$(date +%Y-%m-%d)', 'Brief generated and delivered. Priorities: [top 3]. Key relationship: [name]. Key action: [action].', 'cron');"
+
+---
+
+STEP 10 -- CONFIRM TO ME
+
+Send one Telegram message after everything is done:
+
+Morning brief delivered. [date]. Brief at: http://100.89.207.104:8001/-/static/briefs/today.html
