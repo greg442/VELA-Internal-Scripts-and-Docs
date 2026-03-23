@@ -594,7 +594,7 @@ async function main() {
   // Today's Call
   if (p1) {
     const [,, obj, nxt, dl] = p1;
-    tgLines.push(`*Call:* Advance ${obj}${dl ? ' by ' + dl : ''}. Next: ${nxt}.`);
+    tgLines.push(`*Today:* Advance ${obj}${dl ? ' by ' + dl : ''}. Next: ${nxt}.`);
   }
 
   // Command Layer — top 3 compressed
@@ -652,7 +652,7 @@ async function main() {
     const labelMatch = line.match(/^\*(.+?):\*\s*(.*)$/);
     if (labelMatch) {
       tgMsgLines.push(`${bold(labelMatch[1] + ':')} ${tgH(labelMatch[2])}`);
-      tgMsgLines.push('');
+      tgMsgLines.push('\n');
     } else {
       // Plain line — just escape HTML, preserve Drive link as-is
       if (line.startsWith('Full brief:')) {
