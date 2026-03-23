@@ -609,10 +609,10 @@ async function main() {
   if (tgOverdue.length) tgCommitParts.push(`${tgOverdue.length} overdue`);
   if (tgCommitParts.length > 0) tgLines.push(`*Commitments:* ${tgCommitParts.join(', ')}`);
 
-  // Calendar
+  // Calendar — one line per event
   if (calendarEvents.length > 0) {
-    const evts = calendarEvents.slice(0, 2).map(e => `${e.time} ${e.summary}`).join(', ');
-    tgLines.push(`*Calendar:* ${evts}`);
+    tgLines.push(`*Calendar:*`);
+    calendarEvents.slice(0, 4).forEach(e => tgLines.push(`  ${e.time} — ${e.summary}`));
   }
 
   // Inbox
