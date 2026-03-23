@@ -97,10 +97,22 @@ function queryCalendar() {
       `gog-wrapper calendar list -a ${GOG_ACCOUNT} --days 1 2>/dev/null`
     ], { encoding: 'utf8' });
     if (!r.stdout) return [];
-    return r.stdout.split('\n').filter(Boolean).map(line => {
-      const [time, summary, attendees] = line.split('|').map(s => s.trim());
-      return { time, summary, attendees: attendees || '' };
-    }).filter(e => e.summary && !CALENDAR_FILTER.some(f => e.summary.toLowerCase().includes(f)));
+    return r.stdout.split('\n')
+      .filter(Boolean)
+      .filter(line => !line.startsWith('ID')) // skip header
+      .map(line => {
+        // Format: ID  START  END  SUMMARY
+        // Split on 2+ spaces to separate columns
+        const cols = line.trim().split(/\s{2,}/);
+        if (cols.length < 4) return null;
+        const start = cols[1]; // e.g. 2026-03-23T08:00:00-04:00
+        const summary = cols.slice(3).join(' ').trim();
+        // Format time as HH:MM AM/PM
+        const d = new Date(start);
+        const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' });
+        return { time, summary, attendees: '' };
+      })
+      .filter(e => e && e.summary && !CALENDAR_FILTER.some(f => e.summary.toLowerCase().includes(f)));
   } catch { return []; }
 }
 
