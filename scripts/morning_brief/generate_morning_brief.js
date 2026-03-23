@@ -61,8 +61,10 @@ const C = {
 
 // Calendar blocks to filter — per CORE.md CALENDAR FILTER RULE
 const CALENDAR_FILTER = [
-  'no igf','trizepitide','tirzepatide','semaglutide',
-  'injection','supplement','workout','rest day','weigh-in','fasting','fast day'
+  'no igf','no peptides','trizepitide','tirzepatide','semaglutide',
+  'injection','supplement','workout','rest day','weigh-in','fasting','fast day',
+  'clear hannah','launch sequence','deep work','do not book',
+  'break','lunch','protected','email triage','decisions queue'
 ];
 
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
