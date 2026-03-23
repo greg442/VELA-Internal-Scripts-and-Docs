@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELA — Executive Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ol: #8B9F6B; --div: #e8e4dc; --surf: #f9f8f5; --mut: #888;
+  --red: #C0392B; --rbg: #fdf1f0; --amb: #c8860a; --abg: #fdf8ee;
+  --grn: #2e7d32; --gbg: #f1f8f1; --body: #ffffff; --card: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --div: #2a2a28; --surf: #1a1a18; --body: #111110; --card: #1a1a18;
+    --rbg: #2a1a18; --abg: #231e10; --gbg: #162016;
+  }
+}
+
+html { font-size: 16px; }
+body { font-family: 'Lato', -apple-system, sans-serif; background: var(--body); color: #2D2D2D; -webkit-font-smoothing: antialiased; }
+@media (prefers-color-scheme: dark) { body { color: #e8e6e0; } }
+
+.db { max-width: 1100px; margin: 0 auto; padding: 0 0 4rem; }
+
+/* Header */
+.dh { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 0.5px solid var(--div); margin-bottom: 1.75rem; }
+.dh-l { display: flex; align-items: center; gap: 10px; }
+.wm { font-family: Georgia, serif; font-size: 13px; letter-spacing: 6px; color: #2D2D2D; }
+@media (prefers-color-scheme: dark) { .wm { color: #e8e6e0; } }
+.sub-lbl { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin-left: 4px; }
+.live-wrap { display: flex; align-items: center; gap: 8px; }
+.live-lbl { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--ol); animation: blink 2.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:.8} 50%{opacity:.2} }
+
+.db-body { padding: 0 1.5rem; }
+
+/* Stat cards */
+.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.75rem; }
+.stat { background: var(--surf); border-radius: 8px; padding: 1rem 1.1rem; cursor: pointer; border: 1.5px solid transparent; transition: border-color .15s; user-select: none; }
+.stat:hover { border-color: var(--ol); }
+.stat.open { border-color: var(--ol); background: var(--card); }
+.stat-lbl { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+.stat-val { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-sub { font-size: 11px; color: var(--mut); }
+.chevron { font-size: 10px; color: var(--ol); transition: transform .2s; }
+.stat.open .chevron { transform: rotate(180deg); }
+.v-red { color: var(--red); } .v-amb { color: var(--amb); } .v-grn { color: var(--grn); } .v-ol { color: var(--ol); }
+
+/* Expand panels */
+.ep { display: none; background: var(--card); border: 0.5px solid var(--div); border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; }
+.ep.vis { display: block; }
+.ep-lbl { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ol); margin-bottom: 1rem; display: block; }
+
+/* Badges */
+.badge { display: inline-block; font-family: 'Courier New', monospace; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+.b-now { background: var(--rbg); color: var(--red); }
+.b-soon { background: var(--abg); color: var(--amb); }
+.b-ok { background: var(--gbg); color: var(--grn); }
+.b-ol { background: #f4f7ef; color: #5a7a3a; }
+@media (prefers-color-scheme: dark) { .b-ol { background: #1e2318; color: #9fb87a; } }
+
+/* Priority items */
+.pri { padding: .7rem 0; border-bottom: 0.5px solid var(--div); display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: start; }
+.pri:last-child { border-bottom: none; padding-bottom: 0; }
+.pri-num { font-family: 'Courier New', monospace; font-size: 11px; color: var(--ol); font-weight: 700; padding-top: 1px; }
+.pri-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.pri-next { font-size: 11px; color: var(--mut); line-height: 1.5; }
+.pri-meta { text-align: right; }
+.pri-dl { font-family: 'Courier New', monospace; font-size: 10px; color: var(--mut); margin-bottom: 4px; }
+
+/* Commitment items */
+.cm { padding: .65rem 0; border-bottom: 0.5px solid var(--div); display: flex; align-items: flex-start; gap: 10px; }
+.cm:last-child { border-bottom: none; padding-bottom: 0; }
+.cdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.cd-r { background: var(--red); } .cd-a { background: var(--amb); } .cd-o { background: var(--ol); }
+.cm-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.cm-meta { font-size: 11px; color: var(--mut); }
+
+/* Decision items */
+.dec { padding: .7rem 0; border-bottom: 0.5px solid var(--div); }
+.dec:last-child { border-bottom: none; padding-bottom: 0; }
+.dec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.dec-title { font-size: 13px; font-weight: 700; }
+.dec-rev { font-family: 'Courier New', monospace; font-size: 10px; color: var(--mut); white-space: nowrap; margin-left: 8px; }
+.dec-ctx { font-size: 11px; color: var(--mut); line-height: 1.5; margin-bottom: 4px; }
+.dec-rec { font-size: 11px; color: var(--ol); font-style: italic; }
+
+/* Signal items */
+.sig { padding: .65rem 0; border-bottom: 0.5px solid var(--div); }
+.sig:last-child { border-bottom: none; padding-bottom: 0; }
+.sig-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+.sig-ent { font-size: 12px; font-weight: 700; }
+.sig-ts { font-family: 'Courier New', monospace; font-size: 9px; color: var(--mut); }
+.sig-body { font-size: 11px; color: var(--mut); line-height: 1.5; }
+
+/* Bottom panels */
+.three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
+.panel { background: var(--card); border: 0.5px solid var(--div); border-radius: 10px; padding: 1.1rem 1.25rem; }
+.panel-lbl { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ol); margin-bottom: 1rem; display: block; }
+
+/* Deal items */
+.deal { padding: .7rem 0; border-bottom: 0.5px solid var(--div); }
+.deal:last-child { border-bottom: none; padding-bottom: 0; }
+.deal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.deal-name { font-size: 13px; font-weight: 700; }
+.deal-meta { font-size: 11px; color: var(--mut); }
+.bar-w { background: var(--div); border-radius: 2px; height: 3px; margin-top: 6px; }
+.bar { height: 3px; border-radius: 2px; transition: width .5s ease; }
+.bg { background: var(--grn); } .ba { background: var(--amb); } .br { background: var(--red); }
+
+/* Relationship items */
+.rel { display: flex; align-items: center; gap: 10px; padding: .6rem 0; border-bottom: 0.5px solid var(--div); }
+.rel:last-child { border-bottom: none; padding-bottom: 0; }
+.init { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.ir { background: var(--rbg); color: var(--red); }
+.ia { background: var(--abg); color: var(--amb); }
+.ig { background: var(--gbg); color: var(--grn); }
+.rel-info { flex: 1; min-width: 0; }
+.rel-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.rel-ctx { font-size: 11px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rel-days { font-family: 'Courier New', monospace; font-size: 10px; text-align: right; flex-shrink: 0; }
+
+/* Hannah status */
+.h-row { background: var(--surf); border-radius: 8px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
+.h-icon { width: 32px; height: 32px; border-radius: 50%; background: #f4f7ef; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+@media (prefers-color-scheme: dark) { .h-icon { background: #1e2318; } }
+.h-status { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.h-sub { font-size: 11px; color: var(--mut); }
+
+/* Footer */
+.ft { display: flex; justify-content: space-between; align-items: center; padding-top: 1.5rem; border-top: 0.5px solid var(--div); margin-top: 1.75rem; }
+.ft-txt { font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; color: var(--mut); opacity: .5; }
+
+/* Loading / error states */
+.loading { font-family: 'Courier New', monospace; font-size: 11px; color: var(--mut); padding: .5rem 0; }
+.empty { font-size: 12px; color: var(--mut); font-style: italic; padding: .5rem 0; }
+
+@media (max-width: 700px) {
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .three-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="db">
+
+  <div class="dh">
+    <div class="dh-l">
+      <svg width="26" height="26" viewBox="0 0 100 100" fill="none" style="opacity:.6;color:#2D2D2D">
+        <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="1"/>
+        <circle cx="50" cy="50" r="4" fill="currentColor"/>
+        <line x1="50" y1="5" x2="50" y2="20" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="50" y1="80" x2="50" y2="95" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="5" y1="50" x2="20" y2="50" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="80" y1="50" x2="95" y2="50" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="50" y1="20" x2="50" y2="35" stroke="currentColor" stroke-width=".75" stroke-dasharray="2,2"/>
+        <line x1="50" y1="65" x2="50" y2="80" stroke="currentColor" stroke-width=".75" stroke-dasharray="2,2"/>
+        <line x1="20" y1="50" x2="35" y2="50" stroke="currentColor" stroke-width=".75" stroke-dasharray="2,2"/>
+        <line x1="65" y1="50" x2="80" y2="50" stroke="currentColor" stroke-width=".75" stroke-dasharray="2,2"/>
+      </svg>
+      <span class="wm">V E L A</span>
+      <span class="sub-lbl">Executive Intelligence</span>
+    </div>
+    <div class="live-wrap">
+      <span class="live-lbl">Live</span>
+      <div class="pulse"></div>
+      <span class="live-lbl" id="last-updated">Loading...</span>
+    </div>
+  </div>
+
+  <div class="db-body">
+
+    <!-- Stat cards -->
+    <div class="stat-row">
+      <div class="stat open" id="card-priorities" onclick="toggle('ep-priorities','card-priorities')">
+        <div class="stat-lbl">Active priorities <span class="chevron">▲</span></div>
+        <div class="stat-val v-ol" id="count-priorities">-</div>
+        <div class="stat-sub" id="sub-priorities">loading...</div>
+      </div>
+      <div class="stat" id="card-commitments" onclick="toggle('ep-commitments','card-commitments')">
+        <div class="stat-lbl">Commitments due <span class="chevron">▼</span></div>
+        <div class="stat-val v-red" id="count-commitments">-</div>
+        <div class="stat-sub" id="sub-commitments">loading...</div>
+      </div>
+      <div class="stat" id="card-decisions" onclick="toggle('ep-decisions','card-decisions')">
+        <div class="stat-lbl">Open decisions <span class="chevron">▼</span></div>
+        <div class="stat-val v-amb" id="count-decisions">-</div>
+        <div class="stat-sub" id="sub-decisions">loading...</div>
+      </div>
+      <div class="stat" id="card-signals" onclick="toggle('ep-signals','card-signals')">
+        <div class="stat-lbl">Signals today <span class="chevron">▼</span></div>
+        <div class="stat-val v-grn" id="count-signals">-</div>
+        <div class="stat-sub" id="sub-signals">loading...</div>
+      </div>
+    </div>
+
+    <!-- Expand: Priorities -->
+    <div id="ep-priorities" class="ep vis">
+      <span class="ep-lbl">Active priorities</span>
+      <div id="list-priorities"><span class="loading">Loading...</span></div>
+    </div>
+
+    <!-- Expand: Commitments -->
+    <div id="ep-commitments" class="ep">
+      <span class="ep-lbl">Open commitments</span>
+      <div id="list-commitments"><span class="loading">Loading...</span></div>
+    </div>
+
+    <!-- Expand: Decisions -->
+    <div id="ep-decisions" class="ep">
+      <span class="ep-lbl">Open decisions</span>
+      <div id="list-decisions"><span class="loading">Loading...</span></div>
+    </div>
+
+    <!-- Expand: Signals -->
+    <div id="ep-signals" class="ep">
+      <span class="ep-lbl">Signals — last 24 hours</span>
+      <div id="list-signals"><span class="loading">Loading...</span></div>
+    </div>
+
+    <!-- Bottom panels -->
+    <div class="three-col">
+
+      <div class="panel">
+        <span class="panel-lbl">Deal pipeline</span>
+        <div id="list-deals"><span class="loading">Loading...</span></div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-lbl">Relationship temperature</span>
+        <div id="list-relationships"><span class="loading">Loading...</span></div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-lbl">Hannah — live status</span>
+        <div class="h-row">
+          <div class="h-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B9F6B" stroke-width="2">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          </div>
+          <div>
+            <div class="h-status" id="hannah-status">Checking...</div>
+            <div class="h-sub" id="hannah-sub"></div>
+          </div>
+        </div>
+        <div id="list-activity"><span class="loading">Loading...</span></div>
+      </div>
+
+    </div>
+
+    <div class="ft">
+      <span class="ft-txt">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ol);opacity:.6;margin-right:5px;vertical-align:middle;animation:blink 2.5s ease-in-out infinite"></span>
+        Auto-refresh every 60s
+      </span>
+      <span class="ft-txt">VELA · Private Command Infrastructure</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BASE = '';
+
+function q(sql) {
+  return fetch(BASE + '/hannah.json?sql=' + encodeURIComponent(sql) + '&_shape=array')
+    .then(r => r.json())
+    .catch(() => []);
+}
+
+function urgencyBadge(u) {
+  if (!u) return '';
+  if (u === 'now') return '<span class="badge b-now">now</span>';
+  if (u === 'soon') return '<span class="badge b-soon">soon</span>';
+  return '<span class="badge b-ok">' + u + '</span>';
+}
+
+function iumBadge(score) {
+  const n = parseInt(score) || 0;
+  if (n >= 8) return '<span class="badge b-now">IUM ' + n + '</span>';
+  if (n >= 6) return '<span class="badge b-soon">IUM ' + n + '</span>';
+  return '<span class="badge b-ol">IUM ' + n + '</span>';
+}
+
+function daysSince(dateStr) {
+  if (!dateStr || dateStr === 'null') return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return Math.floor((Date.now() - d) / 86400000);
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr || dateStr === 'null') return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return Math.floor((d - Date.now()) / 86400000);
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const diff = Date.now() - d;
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+  return Math.floor(diff/86400000) + 'd ago';
+}
+
+function escape(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggle(panelId, cardId) {
+  const panel = document.getElementById(panelId);
+  const card = document.getElementById(cardId);
+  const isOpen = panel.classList.contains('vis');
+
+  document.querySelectorAll('.ep').forEach(p => p.classList.remove('vis'));
+  document.querySelectorAll('.stat').forEach(c => {
+    c.classList.remove('open');
+    const ch = c.querySelector('.chevron');
+    if (ch) ch.textContent = '▼';
+  });
+
+  if (!isOpen) {
+    panel.classList.add('vis');
+    card.classList.add('open');
+    const ch = card.querySelector('.chevron');
+    if (ch) ch.textContent = '▲';
+  }
+}
+
+async function loadAll() {
+  const now = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/New_York'});
+  document.getElementById('last-updated').textContent = 'Updated ' + now + ' ET';
+
+  // Priorities
+  const priorities = await q("SELECT rank, entity_id, objective, next_action, deadline, urgency, momentum FROM priorities ORDER BY rank ASC LIMIT 6");
+  document.getElementById('count-priorities').textContent = priorities.length;
+  const nowCount = priorities.filter(p => p.urgency === 'now').length;
+  document.getElementById('sub-priorities').textContent = nowCount + ' at urgency: now';
+  if (priorities.length === 0) {
+    document.getElementById('list-priorities').innerHTML = '<span class="empty">No priorities loaded.</span>';
+  } else {
+    document.getElementById('list-priorities').innerHTML = priorities.map(p => `
+      <div class="pri">
+        <div class="pri-num">${p.rank}</div>
+        <div>
+          <div class="pri-name">${escape(p.objective || p.entity_id)}</div>
+          <div class="pri-next">${escape(p.next_action || '')}</div>
+        </div>
+        <div class="pri-meta">
+          <div class="pri-dl">${escape(p.deadline || '')}</div>
+          ${urgencyBadge(p.urgency)}
+        </div>
+      </div>`).join('');
+  }
+
+  // Decisions
+  const decisions = await q("SELECT title, context, decision, revisit_date, status FROM decisions WHERE status='active' ORDER BY revisit_date ASC");
+  document.getElementById('count-decisions').textContent = decisions.length;
+  const urgentDecs = decisions.filter(d => { const n = daysUntil(d.revisit_date); return n !== null && n <= 3; });
+  document.getElementById('sub-decisions').textContent = urgentDecs.length > 0 ? urgentDecs.length + ' revisit within 3 days' : decisions.length + ' open';
+  if (decisions.length === 0) {
+    document.getElementById('list-decisions').innerHTML = '<span class="empty">No open decisions.</span>';
+  } else {
+    document.getElementById('list-decisions').innerHTML = decisions.map(d => {
+      const days = daysUntil(d.revisit_date);
+      const daysStr = days !== null ? d.revisit_date + ' · ' + days + 'd' : d.revisit_date || '';
+      const isUrgent = days !== null && days <= 3;
+      return `<div class="dec">
+        <div class="dec-top">
+          <span class="dec-title" style="${isUrgent ? 'color:var(--amb)' : ''}">${escape(d.title)}</span>
+          <span class="dec-rev">${escape(daysStr)}</span>
+        </div>
+        <div class="dec-ctx">${escape(d.context || d.decision || '')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Signals today
+  const signals = await q("SELECT ts, entity_id, signal_type, ium_score, summary FROM signals WHERE ts >= datetime('now','-24 hours') ORDER BY ium_score DESC LIMIT 10");
+  document.getElementById('count-signals').textContent = signals.length;
+  const highSigs = signals.filter(s => parseInt(s.ium_score) >= 7).length;
+  document.getElementById('sub-signals').textContent = highSigs + ' above IUM 7';
+  if (signals.length === 0) {
+    document.getElementById('list-signals').innerHTML = '<span class="empty">No signals in the last 24 hours.</span>';
+  } else {
+    document.getElementById('list-signals').innerHTML = signals.map(s => `
+      <div class="sig">
+        <div class="sig-top">
+          <span class="sig-ent">${escape(s.entity_id || 'Signal')}</span>
+          ${iumBadge(s.ium_score)}
+          <span class="sig-ts">${escape(s.signal_type || '')} · ${timeAgo(s.ts)}</span>
+        </div>
+        <div class="sig-body">${escape(s.summary || '')}</div>
+      </div>`).join('');
+  }
+
+  // Commitments from memory table
+  const commitments = await q("SELECT key, value, source FROM memory WHERE category='commitment' ORDER BY value ASC LIMIT 10");
+  const today = new Date();
+  const in48 = new Date(today.getTime() + 2*86400000);
+  const overdueItems = commitments.filter(c => { const d = new Date(c.value); return d < today; });
+  const dueItems = commitments.filter(c => { const d = new Date(c.value); return d >= today && d <= in48; });
+  const total = overdueItems.length + dueItems.length;
+  document.getElementById('count-commitments').textContent = total;
+  const parts = [];
+  if (overdueItems.length) parts.push(overdueItems.length + ' overdue');
+  if (dueItems.length) parts.push(dueItems.length + ' in 48h');
+  document.getElementById('sub-commitments').textContent = parts.join(' · ') || 'all current';
+  if (total === 0) {
+    document.getElementById('list-commitments').innerHTML = '<span class="empty">No hard commitments due.</span>';
+  } else {
+    const allItems = [
+      ...overdueItems.map(c => ({...c, type:'overdue'})),
+      ...dueItems.map(c => ({...c, type:'due'}))
+    ];
+    document.getElementById('list-commitments').innerHTML = allItems.map(c => {
+      const cls = c.type === 'overdue' ? 'cd-r' : 'cd-a';
+      return `<div class="cm">
+        <div class="cdot ${cls}"></div>
+        <div>
+          <div class="cm-title">${escape(c.key)}</div>
+          <div class="cm-meta">${escape(c.value)} · ${escape(c.source || '')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Deals
+  const deals = await q("SELECT name, status, momentum, next_action, last_updated FROM entities WHERE type IN ('deal','priority') ORDER BY CASE momentum WHEN 'rising' THEN 1 WHEN 'steady' THEN 2 WHEN 'stalled' THEN 3 ELSE 4 END ASC LIMIT 5");
+  if (deals.length === 0) {
+    document.getElementById('list-deals').innerHTML = '<span class="empty">No active deals.</span>';
+  } else {
+    document.getElementById('list-deals').innerHTML = deals.map(d => {
+      const barWidth = d.momentum === 'rising' ? '75%' : d.momentum === 'steady' ? '45%' : '20%';
+      const barClass = d.momentum === 'rising' ? 'bg' : d.momentum === 'steady' ? 'ba' : 'br';
+      const badge = d.momentum === 'rising' ? '<span class="badge b-ok">rising</span>' : d.momentum === 'stalled' ? '<span class="badge b-now">stalled</span>' : '<span class="badge b-soon">steady</span>';
+      return `<div class="deal">
+        <div class="deal-top"><span class="deal-name">${escape(d.name)}</span>${badge}</div>
+        <div class="deal-meta">${escape(d.next_action || d.status || '')}</div>
+        <div class="bar-w"><div class="bar ${barClass}" style="width:${barWidth}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Relationships
+  const rels = await q("SELECT name, last_contact, strategic_val, next_action FROM entities WHERE type='relationship' AND strategic_val='high' ORDER BY last_contact ASC LIMIT 6");
+  if (rels.length === 0) {
+    document.getElementById('list-relationships').innerHTML = '<span class="empty">No relationship data.</span>';
+  } else {
+    document.getElementById('list-relationships').innerHTML = rels.map(r => {
+      const days = daysSince(r.last_contact);
+      const daysStr = days === null ? '?' : days + 'd';
+      const cls = days === null || days > 10 ? 'ir' : days > 5 ? 'ia' : 'ig';
+      const daysColor = days === null || days > 10 ? 'v-red' : days > 5 ? 'v-amb' : 'v-grn';
+      const initials = r.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+      return `<div class="rel">
+        <div class="init ${cls}">${initials}</div>
+        <div class="rel-info">
+          <div class="rel-name">${escape(r.name)}</div>
+          <div class="rel-ctx">${escape(r.next_action || '')}</div>
+        </div>
+        <div class="rel-days ${daysColor}">${daysStr}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Hannah activity — recent signals with action_taken
+  const activity = await q("SELECT ts, entity_id, signal_type, summary, action_taken FROM signals WHERE action_taken IS NOT NULL AND action_taken != '' ORDER BY ts DESC LIMIT 5");
+  if (activity.length === 0) {
+    document.getElementById('hannah-status').textContent = 'No recent activity';
+    document.getElementById('list-activity').innerHTML = '<span class="empty">No logged actions yet today.</span>';
+  } else {
+    const latest = activity[0];
+    document.getElementById('hannah-status').textContent = 'Last action: ' + timeAgo(latest.ts);
+    document.getElementById('hannah-sub').textContent = escape(latest.action_taken || '').substring(0, 60);
+    document.getElementById('list-activity').innerHTML = activity.map(a => `
+      <div class="sig">
+        <div class="sig-top">
+          <span class="sig-ent">${escape(a.entity_id || 'Hannah')}</span>
+          <span class="sig-ts">${timeAgo(a.ts)}</span>
+        </div>
+        <div class="sig-body">${escape(a.action_taken || a.summary || '')}</div>
+      </div>`).join('');
+  }
+}
+
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
