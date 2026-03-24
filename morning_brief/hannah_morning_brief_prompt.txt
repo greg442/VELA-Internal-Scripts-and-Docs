@@ -223,33 +223,24 @@ Body: Good morning, your morning intelligence brief is ready. [HTML link]
 
 STEP 8 -- SEND TELEGRAM
 
-Send Greg a Telegram message. Format:
+Use the Telegram sendMessage API directly via curl. Do not write the message as text in your response. Send it as an API call with parse_mode HTML so bold tags render correctly.
 
-<b>VELA Morning Brief -- [DATE]</b>
-
-[First 2 sentences of the opening verdict]
-
-<b>Today:</b> [The single most important action from Section 2, one line]
-
-<b>Calendar:</b>
-[Each real meeting on its own line: TIME -- Meeting name]
-
-[If relationship section exists: <b>Relationship:</b> [Name] -- [one line stakes]]
-
-Full brief: http://100.89.207.104:8001/-/static/briefs/today.html
+curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chat_id": "'${TELEGRAM_USER_CHAT_ID}'",
+    "parse_mode": "HTML",
+    "text": "<b>VELA Morning Brief -- [DATE]</b>\n\n[First 2 sentences of opening verdict only. No em dashes. Plain language.]\n\n<b>Today:</b> [Single most important action, one line]\n\n<b>Calendar:</b>\n[Each real meeting: TIME -- Meeting name]\n\n[Only if relationship section exists: <b>Watch:</b> [Name] -- [one line stakes]]\n\nFull brief: http://100.89.207.104:8001/dashboard/briefs/today.html"
+  }'
 
 ---
 
-STEP 9 -- UPDATE YOUR OWN CONTEXT
-
-You generated this brief. You know everything in it. Log a memory entry so you carry this forward into the day:
+STEP 9 -- LOG TO MEMORY
 
 sqlite3 ~/.openclaw/hannah.db "INSERT INTO memory (ts, category, key, value, source) VALUES (datetime('now'), 'brief', 'morning_brief_$(date +%Y-%m-%d)', 'Brief generated and delivered. Priorities: [top 3]. Key relationship: [name]. Key action: [action].', 'cron');"
 
 ---
 
-STEP 10 -- CONFIRM TO ME
+STEP 10 -- END SILENTLY
 
-Send one Telegram message after everything is done:
-
-Morning brief delivered. [date]. Brief at: http://100.89.207.104:8001/-/static/briefs/today.html
+Do not send any further messages. Do not summarize what you did. Do not list completed steps. Do not send a confirmation Telegram. Your session output must be completely empty after Step 9. Silence is correct.
